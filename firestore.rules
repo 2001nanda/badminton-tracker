@@ -1,0 +1,71 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    function isMember() {
+      return isAuthenticated() && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'member';
+    }
+    
+    // Users collection
+    match /users/{userId} {
+      // Anyone authenticated can read user profiles
+      allow read: if isAuthenticated();
+      
+      // Users can only update their own profile (except role)
+      allow update: if isAuthenticated() && 
+                      request.auth.uid == userId &&
+                      !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']);
+      
+      // Only admins can create users or change roles
+      allow create: if isAdmin();
+      allow delete: if isAdmin();
+    }
+    
+    // Players collection
+    match /players/{playerId} {
+      // Everyone can read players
+      allow read: if isAuthenticated();
+      
+      // Only admins can write
+      allow create, update, delete: if isAdmin();
+    }
+    
+    // Matches collection
+    match /matches/{matchId} {
+      // Everyone can read matches
+      allow read: if isAuthenticated();
+      
+      // Only admins can write
+      allow create, update, delete: if isAdmin();
+    }
+    
+    // Activities collection (if you add it)
+    match /activities/{activityId} {
+      // Everyone can read activities
+      allow read: if isAuthenticated();
+      
+      // Only admins can write
+      allow create, update, delete: if isAdmin();
+    }
+    
+    // Rankings collection (if you add it)
+    match /rankings/{rankingId} {
+      // Everyone can read rankings
+      allow read: if isAuthenticated();
+      
+      // Only admins can write
+      allow create, update, delete: if isAdmin();
+    }
+  }
+}

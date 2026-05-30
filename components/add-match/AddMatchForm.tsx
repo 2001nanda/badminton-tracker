@@ -144,7 +144,7 @@ export function AddMatchForm() {
   ].filter((id): id is string => Boolean(id));
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 pb-24 md:pb-8">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 pb-32 md:pb-8">
       {/* Match Type */}
       <div className="glass-card rounded-2xl p-6">
         <h2 className="text-base font-semibold text-white mb-4">Match Type</h2>
@@ -292,7 +292,7 @@ export function AddMatchForm() {
 
       {/* Submit Button - Sticky on mobile */}
       <div className="md:relative md:p-0 md:bg-none">
-        <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-[#0B0F14] via-[#0B0F14] to-transparent md:relative md:p-0 md:bg-none z-50">
+        <div className="fixed bottom-16 left-0 right-0 p-4 bg-gradient-to-t from-[#0B0F14] via-[#0B0F14] to-transparent md:relative md:bottom-0 md:p-0 md:bg-none z-40">
           <Button
             type="submit"
             disabled={submitting || !hasValidScore(formValues)}

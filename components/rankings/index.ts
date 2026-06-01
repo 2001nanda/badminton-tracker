@@ -1,5 +1,6 @@
 export { RankingsHeader } from './RankingsHeader';
 export { RankingsTabs } from './RankingsTabs';
+export { MatchTypeFilter } from './MatchTypeFilter';
 export { RankingsSpotlight } from './RankingsSpotlight';
 export { RankingsList } from './RankingsList';
 export { RankingCard } from './RankingCard';

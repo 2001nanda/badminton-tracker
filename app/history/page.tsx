@@ -7,7 +7,10 @@ import { useMatchHistory } from '@/lib/hooks/useMatchHistory';
 import { useOptimizedPlayers } from '@/lib/hooks/useOptimizedPlayers';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Trash2, CheckSquare, X } from 'lucide-react';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { PasswordDialog } from '@/components/ui/PasswordDialog';
+import { useDeleteProtection } from '@/lib/contexts/DeleteProtectionContext';
+import { Trash2, CheckSquare, X, Lock } from 'lucide-react';
 import { deleteMultipleMatches } from '@/lib/actions/matchActions';
 import { toast } from 'sonner';
 
@@ -20,6 +23,9 @@ export default function HistoryPage() {
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedMatches, setSelectedMatches] = useState<Set<string>>(new Set());
   const [deleting, setDeleting] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const { isDeleteEnabled, enableDelete } = useDeleteProtection();
 
   const { matches, loading } = useMatchHistory({
     searchQuery,
@@ -50,13 +56,10 @@ export default function HistoryPage() {
 
   const handleDeleteSelected = async () => {
     if (selectedMatches.size === 0) return;
+    setShowDeleteDialog(true);
+  };
 
-    const confirmed = window.confirm(
-      `Are you sure you want to delete ${selectedMatches.size} ${selectedMatches.size === 1 ? 'match' : 'matches'}? This action cannot be undone.`
-    );
-
-    if (!confirmed) return;
-
+  const handleConfirmDelete = async () => {
     setDeleting(true);
     try {
       const result = await deleteMultipleMatches(Array.from(selectedMatches));
@@ -67,6 +70,7 @@ export default function HistoryPage() {
         });
         setSelectedMatches(new Set());
         setSelectionMode(false);
+        setShowDeleteDialog(false);
       } else {
         toast.error('Failed to delete matches', {
           description: 'Please try again',
@@ -87,8 +91,44 @@ export default function HistoryPage() {
     setSelectedMatches(new Set());
   };
 
+  const handlePasswordSuccess = () => {
+    toast.success('Delete mode enabled! 🔓', {
+      description: 'You can now delete matches',
+    });
+  };
+
+  const handleEnableDeleteMode = () => {
+    if (!isDeleteEnabled) {
+      setShowPasswordDialog(true);
+    } else {
+      setSelectionMode(true);
+    }
+  };
+
   return (
     <div className="min-h-screen">
+      <PasswordDialog
+        isOpen={showPasswordDialog}
+        onClose={() => setShowPasswordDialog(false)}
+        onSuccess={() => {
+          enableDelete('iamnoob');
+          handlePasswordSuccess();
+          setSelectionMode(true);
+        }}
+      />
+      
+      <ConfirmDialog
+        isOpen={showDeleteDialog}
+        onClose={() => setShowDeleteDialog(false)}
+        onConfirm={handleConfirmDelete}
+        title={`Delete ${selectedMatches.size} ${selectedMatches.size === 1 ? 'Match' : 'Matches'}?`}
+        description={`Are you sure you want to delete ${selectedMatches.size} ${selectedMatches.size === 1 ? 'match' : 'matches'}? This action cannot be undone and all match data will be permanently removed.`}
+        confirmText={`Delete ${selectedMatches.size === 1 ? 'Match' : 'Matches'}`}
+        cancelText="Cancel"
+        variant="danger"
+        loading={deleting}
+      />
+      
       <HistoryHeader totalMatches={matches.length} />
       
       <div className="container mx-auto px-4 py-6 max-w-5xl">
@@ -96,13 +136,22 @@ export default function HistoryPage() {
         {!selectionMode ? (
           <div className="mb-4 flex justify-end">
             <Button
-              onClick={() => setSelectionMode(true)}
+              onClick={handleEnableDeleteMode}
               variant="outline"
               className="border-white/10 hover:bg-white/10 text-white"
               disabled={matches.length === 0}
             >
-              <CheckSquare className="w-4 h-4 mr-2" />
-              Select Matches
+              {isDeleteEnabled ? (
+                <>
+                  <CheckSquare className="w-4 h-4 mr-2" />
+                  Select Matches
+                </>
+              ) : (
+                <>
+                  <Lock className="w-4 h-4 mr-2" />
+                  Enable Delete Mode
+                </>
+              )}
             </Button>
           </div>
         ) : (

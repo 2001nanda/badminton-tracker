@@ -7,6 +7,8 @@ import { format } from 'date-fns';
 import { Trophy, User, Users, Flame, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { useDeleteProtection } from '@/lib/contexts/DeleteProtectionContext';
 import { deleteMatch } from '@/lib/actions/matchActions';
 import { toast } from 'sonner';
 
@@ -26,22 +28,22 @@ export const ActivityMatchCard = memo(function ActivityMatchCard({
   onToggleSelection,
 }: ActivityMatchCardProps) {
   const [deleting, setDeleting] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const { isDeleteEnabled } = useDeleteProtection();
   
-  const handleDelete = async (e: React.MouseEvent) => {
+  const handleDeleteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    
-    const confirmed = window.confirm(
-      'Are you sure you want to delete this match? This action cannot be undone.'
-    );
+    setShowDeleteDialog(true);
+  };
 
-    if (!confirmed) return;
-
+  const handleConfirmDelete = async () => {
     setDeleting(true);
     try {
       const result = await deleteMatch(match.id);
       
       if (result.success) {
         toast.success('Match deleted successfully! 🗑️');
+        setShowDeleteDialog(false);
       } else {
         toast.error('Failed to delete match', {
           description: 'Please try again',
@@ -86,14 +88,27 @@ export const ActivityMatchCard = memo(function ActivityMatchCard({
     .join(' + ');
 
   return (
-    <Card 
-      className={cn(
-        "border-white/10 bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-sm hover:from-white/10 hover:to-white/15 transition-all relative",
-        selectionMode && "cursor-pointer",
-        isSelected && "ring-2 ring-emerald-500"
-      )}
-      onClick={selectionMode ? handleToggle : undefined}
-    >
+    <>
+      <ConfirmDialog
+        isOpen={showDeleteDialog}
+        onClose={() => setShowDeleteDialog(false)}
+        onConfirm={handleConfirmDelete}
+        title="Delete Match?"
+        description="Are you sure you want to delete this match? This action cannot be undone and all match data will be permanently removed."
+        confirmText="Delete Match"
+        cancelText="Cancel"
+        variant="danger"
+        loading={deleting}
+      />
+      
+      <Card 
+        className={cn(
+          "border-white/10 bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-sm hover:from-white/10 hover:to-white/15 transition-all relative",
+          selectionMode && "cursor-pointer",
+          isSelected && "ring-2 ring-emerald-500"
+        )}
+        onClick={selectionMode ? handleToggle : undefined}
+      >
       <div className="p-5">
         {/* Selection Checkbox */}
         {selectionMode && (
@@ -115,11 +130,11 @@ export const ActivityMatchCard = memo(function ActivityMatchCard({
           </div>
         )}
 
-        {/* Delete Button (only when NOT in selection mode) */}
-        {!selectionMode && (
+        {/* Delete Button (only when NOT in selection mode AND delete is enabled) */}
+        {!selectionMode && isDeleteEnabled && (
           <div className="absolute top-4 right-4 z-10">
             <Button
-              onClick={handleDelete}
+              onClick={handleDeleteClick}
               disabled={deleting}
               variant="ghost"
               size="sm"
@@ -214,5 +229,6 @@ export const ActivityMatchCard = memo(function ActivityMatchCard({
         </div>
       </div>
     </Card>
+    </>
   );
 });

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, PlusCircle, Users, Trophy, History } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { DeleteModeToggle } from './DeleteModeToggle';
 
 const navItems = [
   { href: '/', label: 'Home', icon: Home },
@@ -48,6 +49,9 @@ export function DesktopNavigation() {
                 </Link>
               );
             })}
+            <div className="ml-2 pl-2 border-l border-white/10">
+              <DeleteModeToggle />
+            </div>
           </div>
         </div>
       </div>

@@ -245,6 +245,16 @@ export function AddMatchForm() {
             teamBScore={formValues.set1TeamB}
             onTeamAChange={(value) => setValue('set1TeamA', value)}
             onTeamBChange={(value) => setValue('set1TeamB', value)}
+            teamAPlayers={
+              formValues.type === 'singles'
+                ? [playerMap.get(formValues.playerA)?.name].filter(Boolean) as string[]
+                : [playerMap.get(formValues.playerA)?.name, playerMap.get(formValues.playerC || '')?.name].filter(Boolean) as string[]
+            }
+            teamBPlayers={
+              formValues.type === 'singles'
+                ? [playerMap.get(formValues.playerB)?.name].filter(Boolean) as string[]
+                : [playerMap.get(formValues.playerB)?.name, playerMap.get(formValues.playerD || '')?.name].filter(Boolean) as string[]
+            }
           />
           
           {/* Set 2 - Show if visibleSets >= 2 */}
@@ -255,6 +265,16 @@ export function AddMatchForm() {
               teamBScore={formValues.set2TeamB}
               onTeamAChange={(value) => setValue('set2TeamA', value)}
               onTeamBChange={(value) => setValue('set2TeamB', value)}
+              teamAPlayers={
+                formValues.type === 'singles'
+                  ? [playerMap.get(formValues.playerA)?.name].filter(Boolean) as string[]
+                  : [playerMap.get(formValues.playerA)?.name, playerMap.get(formValues.playerC || '')?.name].filter(Boolean) as string[]
+              }
+              teamBPlayers={
+                formValues.type === 'singles'
+                  ? [playerMap.get(formValues.playerB)?.name].filter(Boolean) as string[]
+                  : [playerMap.get(formValues.playerB)?.name, playerMap.get(formValues.playerD || '')?.name].filter(Boolean) as string[]
+              }
             />
           )}
           
@@ -267,6 +287,16 @@ export function AddMatchForm() {
               onTeamAChange={(value) => setValue('set3TeamA', value)}
               onTeamBChange={(value) => setValue('set3TeamB', value)}
               optional
+              teamAPlayers={
+                formValues.type === 'singles'
+                  ? [playerMap.get(formValues.playerA)?.name].filter(Boolean) as string[]
+                  : [playerMap.get(formValues.playerA)?.name, playerMap.get(formValues.playerC || '')?.name].filter(Boolean) as string[]
+              }
+              teamBPlayers={
+                formValues.type === 'singles'
+                  ? [playerMap.get(formValues.playerB)?.name].filter(Boolean) as string[]
+                  : [playerMap.get(formValues.playerB)?.name, playerMap.get(formValues.playerD || '')?.name].filter(Boolean) as string[]
+              }
             />
           )}
 

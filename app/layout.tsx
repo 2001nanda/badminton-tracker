@@ -5,6 +5,7 @@ import { DesktopNavigation, MobileNavigation } from "@/components/Navigation";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { PWAInstallPrompt } from "@/components/pwa/PWAInstallPrompt";
+import { DeleteProtectionProvider } from "@/lib/contexts/DeleteProtectionContext";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -34,13 +35,15 @@ export default function RootLayout({
       </head>
       <body className={`${inter.className} bg-[#0B0F14] text-white antialiased`}>
         <ThemeProvider>
-          <DesktopNavigation />
-          <main className="min-h-screen pb-20 md:pb-8">
-            {children}
-          </main>
-          <MobileNavigation />
-          <Toaster />
-          <PWAInstallPrompt />
+          <DeleteProtectionProvider>
+            <DesktopNavigation />
+            <main className="min-h-screen pb-20 md:pb-8">
+              {children}
+            </main>
+            <MobileNavigation />
+            <Toaster />
+            <PWAInstallPrompt />
+          </DeleteProtectionProvider>
         </ThemeProvider>
       </body>
     </html>

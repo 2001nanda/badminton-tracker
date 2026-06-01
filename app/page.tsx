@@ -2,6 +2,7 @@
 
 import { DashboardHero } from '@/components/dashboard/DashboardHero';
 import { StatsOverview } from '@/components/dashboard/StatsOverview';
+import { WinsComparisonChart } from '@/components/dashboard/WinsComparisonChart';
 import { RecentBattlesFeed } from '@/components/dashboard/RecentBattlesFeed';
 import { QuickActions } from '@/components/dashboard/QuickActions';
 import { useHomeStats } from '@/lib/hooks/useHomeStats';
@@ -22,6 +23,13 @@ export default function HomePage() {
       <div className="container mx-auto px-4 py-6 max-w-7xl space-y-8">
         {/* Stats Overview */}
         <StatsOverview stats={stats} loading={statsLoading} />
+
+        {/* Wins Comparison Chart */}
+        <WinsComparisonChart 
+          matches={matches} 
+          players={players} 
+          loading={matchesLoading} 
+        />
 
         {/* Quick Actions - Mobile Only */}
         <div className="md:hidden">

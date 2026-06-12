@@ -7,3 +7,4 @@ export { BattleCard } from './BattleCard';
 export { BattleCardSkeleton } from './BattleCardSkeleton';
 export { QuickActions } from './QuickActions';
 export { EmptyBattles } from './EmptyBattles';
+export { WinsComparisonChart } from './WinsComparisonChart';

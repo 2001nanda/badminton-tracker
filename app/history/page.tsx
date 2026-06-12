@@ -3,16 +3,19 @@
 import { HistoryHeader } from '@/components/history/HistoryHeader';
 import { HistoryFilters } from '@/components/history/HistoryFilters';
 import { MatchTimeline } from '@/components/history/MatchTimeline';
+import { SummaryCardModal } from '@/components/summary-card';
 import { useMatchHistory } from '@/lib/hooks/useMatchHistory';
 import { useOptimizedPlayers } from '@/lib/hooks/useOptimizedPlayers';
-import { useState } from 'react';
+import { getTodaysMatches, computeSummaryCardData } from '@/lib/utils/summaryCardUtils';
+import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { PasswordDialog } from '@/components/ui/PasswordDialog';
 import { useDeleteProtection } from '@/lib/contexts/DeleteProtectionContext';
-import { Trash2, CheckSquare, X, Lock } from 'lucide-react';
+import { Trash2, CheckSquare, X, Lock, Image } from 'lucide-react';
 import { deleteMultipleMatches } from '@/lib/actions/matchActions';
 import { toast } from 'sonner';
+import { useMatches } from '@/lib/hooks/useMatches';
 
 export default function HistoryPage() {
   const { players } = useOptimizedPlayers();
@@ -25,7 +28,11 @@ export default function HistoryPage() {
   const [deleting, setDeleting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [showSummaryCard, setShowSummaryCard] = useState(false);
   const { isDeleteEnabled, enableDelete } = useDeleteProtection();
+
+  // Fetch all matches (unfiltered) for summary card generation
+  const { matches: allMatches } = useMatches();
 
   const { matches, loading } = useMatchHistory({
     searchQuery,
@@ -33,6 +40,24 @@ export default function HistoryPage() {
     filterPeriod,
     filterPlayer,
   });
+
+  // Compute today's summary card data from all matches (not filtered ones)
+  const summaryCardData = useMemo(() => {
+    const todaysMatches = getTodaysMatches(allMatches);
+    return computeSummaryCardData(todaysMatches, players);
+  }, [allMatches, players]);
+
+  const todaysMatchCount = useMemo(() => getTodaysMatches(allMatches).length, [allMatches]);
+
+  const handleGenerateSummaryCard = () => {
+    if (todaysMatchCount === 0) {
+      toast.error('No matches today', {
+        description: 'Play some matches first to generate a summary card!',
+      });
+      return;
+    }
+    setShowSummaryCard(true);
+  };
 
   const handleToggleSelection = (matchId: string) => {
     setSelectedMatches(prev => {
@@ -128,13 +153,28 @@ export default function HistoryPage() {
         variant="danger"
         loading={deleting}
       />
+
+      <SummaryCardModal
+        isOpen={showSummaryCard}
+        onClose={() => setShowSummaryCard(false)}
+        data={summaryCardData}
+      />
       
       <HistoryHeader totalMatches={matches.length} />
       
       <div className="container mx-auto px-4 py-6 max-w-5xl">
         {/* Selection Mode Controls */}
         {!selectionMode ? (
-          <div className="mb-4 flex justify-end">
+          <div className="mb-4 flex justify-end gap-2">
+            <Button
+              onClick={handleGenerateSummaryCard}
+              variant="outline"
+              className="border-emerald-500/30 hover:bg-emerald-500/10 text-emerald-400 hover:text-emerald-300"
+              disabled={loading}
+            >
+              <Image className="w-4 h-4 mr-2" />
+              Generate Summary Card
+            </Button>
             <Button
               onClick={handleEnableDeleteMode}
               variant="outline"

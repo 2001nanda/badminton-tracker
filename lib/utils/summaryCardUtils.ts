@@ -1,5 +1,5 @@
 import { Match, Player } from '@/lib/types';
-import { isToday, format } from 'date-fns';
+import { isToday, format, isSameDay, parseISO } from 'date-fns';
 
 export interface PlayerSummary {
   id: string;
@@ -47,20 +47,40 @@ export function getTodaysMatches(matches: Match[]): Match[] {
 }
 
 /**
- * Compute the full summary card data from today's matches
+ * Filter matches for a specific date
+ */
+export function getMatchesByDate(matches: Match[], date: Date): Match[] {
+  return matches.filter((match) => isSameDay(match.createdAt, date));
+}
+
+/**
+ * Get all unique dates (as ISO date strings "YYYY-MM-DD") that have matches
+ */
+export function getAvailableMatchDates(matches: Match[]): string[] {
+  const dateSet = new Set<string>();
+  matches.forEach((match) => {
+    const dateStr = format(match.createdAt, 'yyyy-MM-dd');
+    dateSet.add(dateStr);
+  });
+  return Array.from(dateSet).sort((a, b) => b.localeCompare(a)); // newest first
+}
+
+/**
+ * Compute the full summary card data from matches (for any given date)
  */
 export function computeSummaryCardData(
-  todaysMatches: Match[],
-  players: Player[]
+  matchesForDay: Match[],
+  players: Player[],
+  targetDate?: Date
 ): SummaryCardData {
-  const now = new Date();
-  const date = format(now, 'MMMM d, yyyy');
-  const dayOfWeek = format(now, 'EEEE');
+  const dateToUse = targetDate || new Date();
+  const date = format(dateToUse, 'MMMM d, yyyy');
+  const dayOfWeek = format(dateToUse, 'EEEE');
 
   // Collect stats per player
   const playerStats = new Map<string, { wins: number; losses: number; matches: number }>();
 
-  todaysMatches.forEach((match) => {
+  matchesForDay.forEach((match) => {
     match.players.forEach((playerId) => {
       if (!playerStats.has(playerId)) {
         playerStats.set(playerId, { wins: 0, losses: 0, matches: 0 });
@@ -76,7 +96,7 @@ export function computeSummaryCardData(
     });
   });
 
-  const totalMatches = todaysMatches.length;
+  const totalMatches = matchesForDay.length;
   const totalPlayers = playerStats.size;
   const totalWins = Array.from(playerStats.values()).reduce((sum, s) => sum + s.wins, 0);
   const totalLosses = Array.from(playerStats.values()).reduce((sum, s) => sum + s.losses, 0);
@@ -140,7 +160,7 @@ export function computeSummaryCardData(
   };
 
   // Additional Insights
-  const longestWinningStreak = computeLongestWinningStreak(todaysMatches, players);
+  const longestWinningStreak = computeLongestWinningStreak(matchesForDay, players);
   const mostActivePlayer = mostMatchesPlayed
     ? { name: mostMatchesPlayed.name, matches: mostMatchesPlayed.matches }
     : null;

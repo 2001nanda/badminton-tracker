@@ -2,7 +2,6 @@
 
 import { forwardRef } from 'react';
 import { SummaryCardData } from '@/lib/utils/summaryCardUtils';
-import { Trophy, Users, Target, Flame, Crown, Activity } from 'lucide-react';
 
 interface SummaryCardProps {
   data: SummaryCardData;
@@ -15,6 +14,18 @@ export const SummaryCard = forwardRef<HTMLDivElement, SummaryCardProps>(
     const cardWidth = 1080;
     const cardHeight = isPortrait ? 1350 : 1080;
 
+    // Get top 3 for podium
+    const top3 = data.playerBreakdown.slice(0, 3);
+    const remaining = data.playerBreakdown.slice(3);
+
+    // Podium order: [2nd, 1st, 3rd]
+    const podiumOrder =
+      top3.length >= 3
+        ? [top3[1], top3[0], top3[2]]
+        : top3.length === 2
+        ? [top3[1], top3[0]]
+        : top3;
+
     return (
       <div
         ref={ref}
@@ -23,265 +34,291 @@ export const SummaryCard = forwardRef<HTMLDivElement, SummaryCardProps>(
           height: `${cardHeight}px`,
           fontFamily: 'system-ui, -apple-system, sans-serif',
         }}
-        className="relative overflow-hidden bg-gradient-to-br from-[#0B0F14] via-[#111827] to-[#0B0F14] text-white p-12"
+        className="relative overflow-hidden bg-[#050B15] text-white"
       >
-        {/* Background decoration */}
+        {/* Outer border glow */}
+        <div
+          className="absolute inset-0 rounded-[32px] pointer-events-none"
+          style={{
+            border: '1.5px solid rgba(255,255,255,0.08)',
+            boxShadow: 'inset 0 0 60px rgba(16,185,129,0.03)',
+          }}
+        />
+
+        {/* Background effects */}
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/5 rounded-full blur-3xl" />
-          <div className="absolute bottom-0 left-0 w-96 h-96 bg-emerald-500/5 rounded-full blur-3xl" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-emerald-500/3 rounded-full blur-3xl" />
-          {/* Grid pattern */}
-          <div
-            className="absolute inset-0 opacity-[0.03]"
-            style={{
-              backgroundImage:
-                'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)',
-              backgroundSize: '40px 40px',
-            }}
-          />
+          <div className="absolute top-[-100px] right-[-100px] w-[400px] h-[400px] bg-emerald-500/[0.04] rounded-full blur-[100px]" />
+          <div className="absolute bottom-[-100px] left-[-100px] w-[400px] h-[400px] bg-blue-500/[0.03] rounded-full blur-[100px]" />
         </div>
 
         {/* Content */}
-        <div className="relative z-10 h-full flex flex-col">
+        <div className="relative z-10 h-full flex flex-col px-12 py-10">
           {/* Header */}
-          <CardHeader date={data.date} dayOfWeek={data.dayOfWeek} />
+          <div className="mb-6">
+            <div className="flex items-center gap-4 mb-4">
+              <div
+                className="w-14 h-14 rounded-2xl flex items-center justify-center"
+                style={{
+                  background: 'rgba(16,185,129,0.15)',
+                  border: '1px solid rgba(16,185,129,0.4)',
+                  boxShadow: '0 0 24px rgba(16,185,129,0.3)',
+                }}
+              >
+                <span className="text-3xl">🏸</span>
+              </div>
+              <h1 className="text-5xl font-extrabold tracking-tight">
+                <span className="text-white">Badminton </span>
+                <span
+                  style={{
+                    background: 'linear-gradient(to right, #34D399, #FACC15)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                  }}
+                >
+                  Summary
+                </span>
+              </h1>
+            </div>
 
-          {/* Overall Stats */}
-          <OverallStats data={data} />
+            {/* Date pill */}
+            <div
+              className="inline-flex items-center gap-3 px-5 py-2.5 rounded-full"
+              style={{
+                background: 'rgba(16,185,129,0.06)',
+                border: '1px solid rgba(16,185,129,0.35)',
+                boxShadow: '0 0 16px rgba(16,185,129,0.12)',
+              }}
+            >
+              <span className="text-emerald-400 text-lg">📅</span>
+              <span className="text-white font-semibold text-lg">{data.date}</span>
+              <span
+                className="px-3 py-1 rounded-lg text-sm font-medium"
+                style={{ background: 'rgba(255,255,255,0.1)', color: '#94A3B8' }}
+              >
+                {data.dayOfWeek}
+              </span>
+            </div>
 
-          {/* Top Performers */}
-          <TopPerformersSection data={data} />
+            <p className="text-slate-500 text-sm mt-3 flex items-center gap-2">
+              <span>📅</span> Summary for this date only
+            </p>
+          </div>
 
-          {/* Player Rankings Table */}
-          <PlayerRankingsTable players={data.playerBreakdown} isPortrait={isPortrait} />
+          {/* Stats Row */}
+          <div className="grid grid-cols-4 gap-4 mb-8">
+            <StatBox icon="🎯" value={data.totalMatches} label="MATCHES" color="emerald" />
+            <StatBox icon="👥" value={data.totalPlayers} label="PLAYERS" color="blue" />
+            <StatBox icon="🏆" value={data.totalWins} label="TOTAL WINS" color="yellow" />
+            <StatBox icon="📊" value={data.averageMatchesPerPlayer} label="AVG WINS/PLAYER" color="purple" />
+          </div>
 
-          {/* Additional Insights */}
-          <InsightsSection data={data} />
+          {/* Podium Section */}
+          {top3.length > 0 && (
+            <div className="flex items-end justify-center gap-5 mb-8">
+              {podiumOrder.map((player, idx) => {
+                let rank: number;
+                if (top3.length >= 3) {
+                  rank = [2, 1, 3][idx];
+                } else if (top3.length === 2) {
+                  rank = [2, 1][idx];
+                } else {
+                  rank = 1;
+                }
+                return (
+                  <PodiumCard key={player.id} player={player} rank={rank} />
+                );
+              })}
+            </div>
+          )}
+
+          {/* Rankings Table */}
+          {remaining.length > 0 && (
+            <div
+              className="rounded-2xl overflow-hidden mb-6 flex-1"
+              style={{
+                border: '1px solid rgba(255,255,255,0.08)',
+                background: 'rgba(255,255,255,0.02)',
+              }}
+            >
+              {/* Table Header */}
+              <div
+                className="grid grid-cols-[70px_1fr_100px_80px_80px_90px] px-6 py-3"
+                style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}
+              >
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Rank</span>
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Player</span>
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider text-center">Played</span>
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider text-center">Wins</span>
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider text-center">Losses</span>
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Win %</span>
+              </div>
+              {/* Table Rows */}
+              {remaining.slice(0, isPortrait ? 8 : 5).map((player) => (
+                <div
+                  key={player.id}
+                  className="grid grid-cols-[70px_1fr_100px_80px_80px_90px] px-6 py-4 items-center"
+                  style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+                >
+                  <span className="text-lg font-bold text-slate-300">{player.rank}</span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-lg">🏸</span>
+                    <span className="text-base font-semibold text-white">{player.name}</span>
+                  </div>
+                  <span className="text-base text-slate-300 text-center">{player.played}</span>
+                  <span className="text-base text-emerald-400 font-bold text-center">{player.wins}</span>
+                  <span className="text-base text-red-400 font-bold text-center">{player.losses}</span>
+                  <span className="text-base text-white font-bold text-right">{player.winPercentage}%</span>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Footer */}
-          <CardFooter />
+          <div
+            className="mt-auto rounded-2xl px-6 py-4 flex items-center gap-3"
+            style={{
+              border: '1px solid rgba(255,255,255,0.08)',
+              background: 'rgba(255,255,255,0.02)',
+            }}
+          >
+            <span className="text-emerald-400 text-xl">ⓘ</span>
+            <p className="text-sm text-slate-400">
+              All stats are calculated based on matches played on{' '}
+              <span className="text-emerald-400 font-semibold">{data.date}</span>
+            </p>
+          </div>
         </div>
       </div>
     );
   }
 );
 
-function CardHeader({ date, dayOfWeek }: { date: string; dayOfWeek: string }) {
-  return (
-    <div className="mb-8">
-      <div className="flex items-center gap-4 mb-3">
-        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
-          <span className="text-2xl">🏸</span>
-        </div>
-        <div>
-          <h1 className="text-4xl font-extrabold tracking-tight">
-            <span className="bg-gradient-to-r from-emerald-400 to-yellow-400 bg-clip-text text-transparent">
-              Today&apos;s Badminton Summary
-            </span>
-          </h1>
-        </div>
-      </div>
-      <div className="flex items-center gap-3 ml-16">
-        <span className="text-lg text-slate-400">{dayOfWeek}</span>
-        <span className="text-slate-600">•</span>
-        <span className="text-lg text-slate-400">{date}</span>
-      </div>
-    </div>
-  );
-}
+// --- Sub-components ---
 
-function OverallStats({ data }: { data: SummaryCardData }) {
-  const stats = [
-    { label: 'Matches', value: data.totalMatches, icon: Target, color: 'emerald' },
-    { label: 'Players', value: data.totalPlayers, icon: Users, color: 'blue' },
-    { label: 'Total Wins', value: data.totalWins, icon: Trophy, color: 'yellow' },
-    { label: 'Avg/Player', value: data.averageMatchesPerPlayer, icon: Activity, color: 'purple' },
-  ];
-
-  return (
-    <div className="grid grid-cols-4 gap-4 mb-8">
-      {stats.map((stat) => (
-        <div
-          key={stat.label}
-          className="rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm p-5 text-center"
-        >
-          <stat.icon className={`w-6 h-6 mx-auto mb-2 text-${stat.color}-400`} />
-          <p className="text-3xl font-bold text-white">{stat.value}</p>
-          <p className="text-xs text-slate-400 mt-1 uppercase tracking-wider">{stat.label}</p>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function TopPerformersSection({ data }: { data: SummaryCardData }) {
-  const { topPerformers } = data;
-  const performers = [
-    {
-      label: 'Top Player',
-      name: topPerformers.topPlayer?.name || '—',
-      detail: topPerformers.topPlayer ? `${topPerformers.topPlayer.wins} wins` : '',
-      icon: Crown,
-    },
-    {
-      label: 'Most Wins',
-      name: topPerformers.mostWins?.name || '—',
-      detail: topPerformers.mostWins ? `${topPerformers.mostWins.wins} wins` : '',
-      icon: Trophy,
-    },
-    {
-      label: 'Best Win %',
-      name: topPerformers.bestWinPercentage?.name || '—',
-      detail: topPerformers.bestWinPercentage
-        ? `${topPerformers.bestWinPercentage.percentage}%`
-        : '',
-      icon: Target,
-    },
-    {
-      label: 'Most Active',
-      name: topPerformers.mostMatchesPlayed?.name || '—',
-      detail: topPerformers.mostMatchesPlayed
-        ? `${topPerformers.mostMatchesPlayed.matches} matches`
-        : '',
-      icon: Flame,
-    },
-  ];
-
-  return (
-    <div className="mb-8">
-      <h2 className="text-xl font-bold text-emerald-400 mb-4 flex items-center gap-2">
-        <Crown className="w-5 h-5" />
-        Top Performers
-      </h2>
-      <div className="grid grid-cols-4 gap-3">
-        {performers.map((p) => (
-          <div
-            key={p.label}
-            className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4"
-          >
-            <p className="text-xs text-slate-400 uppercase tracking-wider mb-2">{p.label}</p>
-            <p className="text-base font-bold text-white truncate">{p.name}</p>
-            <p className="text-sm text-emerald-400 mt-1">{p.detail}</p>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function PlayerRankingsTable({
-  players,
-  isPortrait,
+function StatBox({
+  icon,
+  value,
+  label,
+  color,
 }: {
-  players: SummaryCardData['playerBreakdown'];
-  isPortrait: boolean;
+  icon: string;
+  value: number | string;
+  label: string;
+  color: 'emerald' | 'blue' | 'yellow' | 'purple';
 }) {
-  // Show max 8 players in square format, 12 in portrait
-  const maxPlayers = isPortrait ? 12 : 8;
-  const displayPlayers = players.slice(0, maxPlayers);
+  const borderColors = {
+    emerald: 'rgba(16,185,129,0.25)',
+    blue: 'rgba(59,130,246,0.25)',
+    yellow: 'rgba(234,179,8,0.25)',
+    purple: 'rgba(168,85,247,0.25)',
+  };
+
+  const iconColors = {
+    emerald: '#34D399',
+    blue: '#60A5FA',
+    yellow: '#FBBF24',
+    purple: '#A78BFA',
+  };
 
   return (
-    <div className="mb-8 flex-1">
-      <h2 className="text-xl font-bold text-emerald-400 mb-4 flex items-center gap-2">
-        <Users className="w-5 h-5" />
-        Player Rankings
-      </h2>
-      <div className="rounded-xl border border-white/10 overflow-hidden">
-        {/* Header row */}
-        <div className="grid grid-cols-[40px_1fr_80px_80px_80px_80px] px-5 py-3 bg-white/5 border-b border-white/10">
-          <span className="text-xs font-semibold text-slate-400 uppercase">#</span>
-          <span className="text-xs font-semibold text-slate-400 uppercase">Player</span>
-          <span className="text-xs font-semibold text-slate-400 uppercase text-center">Played</span>
-          <span className="text-xs font-semibold text-slate-400 uppercase text-center">Won</span>
-          <span className="text-xs font-semibold text-slate-400 uppercase text-center">Lost</span>
-          <span className="text-xs font-semibold text-slate-400 uppercase text-center">Win%</span>
-        </div>
-        {/* Player rows */}
-        {displayPlayers.map((player, idx) => (
-          <div
-            key={player.id}
-            className={`grid grid-cols-[40px_1fr_80px_80px_80px_80px] px-5 py-3 items-center ${
-              idx % 2 === 0 ? 'bg-white/[0.02]' : ''
-            } ${idx === 0 ? 'border-l-2 border-l-yellow-400' : ''}`}
-          >
-            <span
-              className={`text-sm font-bold ${
-                player.rank === 1
-                  ? 'text-yellow-400'
-                  : player.rank === 2
-                  ? 'text-slate-300'
-                  : player.rank === 3
-                  ? 'text-orange-400'
-                  : 'text-slate-500'
-              }`}
-            >
-              {player.rank === 1 ? '🥇' : player.rank === 2 ? '🥈' : player.rank === 3 ? '🥉' : player.rank}
-            </span>
-            <span className="text-sm font-semibold text-white truncate">{player.name}</span>
-            <span className="text-sm text-slate-300 text-center">{player.played}</span>
-            <span className="text-sm text-emerald-400 font-semibold text-center">{player.wins}</span>
-            <span className="text-sm text-red-400 text-center">{player.losses}</span>
-            <span className="text-sm font-bold text-white text-center">{player.winPercentage}%</span>
-          </div>
-        ))}
-      </div>
-      {players.length > maxPlayers && (
-        <p className="text-xs text-slate-500 mt-2 text-center">
-          + {players.length - maxPlayers} more players
-        </p>
+    <div
+      className="rounded-2xl p-5 flex flex-col items-center gap-2 text-center"
+      style={{
+        border: `1px solid ${borderColors[color]}`,
+        background: 'rgba(255,255,255,0.03)',
+      }}
+    >
+      <span className="text-3xl" style={{ filter: `drop-shadow(0 0 6px ${iconColors[color]})` }}>
+        {icon}
+      </span>
+      <span className="text-4xl font-extrabold text-white">{value}</span>
+      <span className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.15em]">
+        {label}
+      </span>
+    </div>
+  );
+}
+
+function PodiumCard({
+  player,
+  rank,
+}: {
+  player: { name: string; wins: number; losses: number; played: number; winPercentage: number };
+  rank: number;
+}) {
+  const isFirst = rank === 1;
+  const isSecond = rank === 2;
+
+  const borderColor = isFirst
+    ? 'rgba(234,179,8,0.6)'
+    : isSecond
+    ? 'rgba(96,165,250,0.5)'
+    : 'rgba(249,115,22,0.5)';
+
+  const glowColor = isFirst
+    ? '0 0 30px rgba(234,179,8,0.25)'
+    : isSecond
+    ? '0 0 20px rgba(96,165,250,0.15)'
+    : '0 0 20px rgba(249,115,22,0.15)';
+
+  const medalEmoji = isFirst ? '🥇' : isSecond ? '🥈' : '🥉';
+  const crownEmoji = isFirst ? '👑' : null;
+
+  const winsColor = isFirst ? '#FBBF24' : isSecond ? '#60A5FA' : '#F97316';
+
+  const cardWidth = isFirst ? '220px' : '180px';
+  const cardPadding = isFirst ? 'py-8 px-5' : 'py-6 px-4';
+  const marginTop = isFirst ? '0px' : '32px';
+
+  return (
+    <div
+      className={`relative flex flex-col items-center rounded-2xl ${cardPadding}`}
+      style={{
+        width: cardWidth,
+        marginTop,
+        border: `1.5px solid ${borderColor}`,
+        background: 'rgba(255,255,255,0.03)',
+        boxShadow: glowColor,
+      }}
+    >
+      {/* Crown */}
+      {crownEmoji && (
+        <span className="absolute -top-7 text-4xl">{crownEmoji}</span>
       )}
-    </div>
-  );
-}
 
-function InsightsSection({ data }: { data: SummaryCardData }) {
-  const { insights } = data;
-  const items = [
-    insights.longestWinningStreak && {
-      label: '🔥 Longest Streak',
-      value: `${insights.longestWinningStreak.name} (${insights.longestWinningStreak.streak} wins)`,
-    },
-    insights.closestCompetition && {
-      label: '⚔️ Closest Battle',
-      value: insights.closestCompetition,
-    },
-    insights.highestWinRate && {
-      label: '🎯 Highest Win Rate',
-      value: `${insights.highestWinRate.name} (${insights.highestWinRate.rate}%)`,
-    },
-    {
-      label: '👥 Total Players',
-      value: `${insights.totalDistinctPlayers} players competed today`,
-    },
-  ].filter(Boolean) as { label: string; value: string }[];
+      {/* Medal */}
+      <span className={`text-5xl ${isFirst ? 'mt-2' : ''}`}>{medalEmoji}</span>
 
-  if (items.length === 0) return null;
+      {/* Name */}
+      <h3
+        className="font-extrabold text-white mt-3 text-center truncate w-full"
+        style={{ fontSize: isFirst ? '22px' : '18px' }}
+      >
+        {player.name}
+      </h3>
 
-  return (
-    <div className="mb-6">
-      <div className="flex flex-wrap gap-3">
-        {items.map((item) => (
-          <div
-            key={item.label}
-            className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 flex items-center gap-2"
-          >
-            <span className="text-xs text-slate-400">{item.label}:</span>
-            <span className="text-xs font-semibold text-white">{item.value}</span>
-          </div>
-        ))}
+      {/* Wins */}
+      <p
+        className="font-extrabold mt-2"
+        style={{ color: winsColor, fontSize: isFirst ? '24px' : '20px' }}
+      >
+        {player.wins} WINS
+      </p>
+
+      {/* Win Rate */}
+      <p className="text-slate-400 text-sm mt-1">
+        {player.winPercentage}% Win Rate
+      </p>
+
+      {/* Stats Row */}
+      <div
+        className="flex items-center gap-3 mt-4 pt-3 w-full justify-center"
+        style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}
+      >
+        <span className="text-emerald-400 text-sm font-bold">{player.wins}W</span>
+        <span className="text-red-400 text-sm font-bold">{player.losses}L</span>
+        <span className="text-slate-400 text-sm">{player.played} Played</span>
       </div>
-    </div>
-  );
-}
-
-function CardFooter() {
-  return (
-    <div className="mt-auto pt-4 border-t border-white/10 flex items-center justify-between">
-      <div className="flex items-center gap-2">
-        <span className="text-lg">🏸</span>
-        <span className="text-sm font-semibold text-slate-400">Badminton Tracker</span>
-      </div>
-      <span className="text-xs text-slate-600">Generated with Badminton Tracker App</span>
     </div>
   );
 }

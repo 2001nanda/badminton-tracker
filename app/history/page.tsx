@@ -3,10 +3,10 @@
 import { HistoryHeader } from '@/components/history/HistoryHeader';
 import { HistoryFilters } from '@/components/history/HistoryFilters';
 import { MatchTimeline } from '@/components/history/MatchTimeline';
-import { SummaryCardModal } from '@/components/summary-card';
+import { SummaryCardModal, DatePickerModal } from '@/components/summary-card';
 import { useMatchHistory } from '@/lib/hooks/useMatchHistory';
 import { useOptimizedPlayers } from '@/lib/hooks/useOptimizedPlayers';
-import { getTodaysMatches, computeSummaryCardData } from '@/lib/utils/summaryCardUtils';
+import { getMatchesByDate, getAvailableMatchDates, computeSummaryCardData } from '@/lib/utils/summaryCardUtils';
 import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -16,6 +16,7 @@ import { Trash2, CheckSquare, X, Lock, Image } from 'lucide-react';
 import { deleteMultipleMatches } from '@/lib/actions/matchActions';
 import { toast } from 'sonner';
 import { useMatches } from '@/lib/hooks/useMatches';
+import { parseISO } from 'date-fns';
 
 export default function HistoryPage() {
   const { players } = useOptimizedPlayers();
@@ -29,6 +30,8 @@ export default function HistoryPage() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [showSummaryCard, setShowSummaryCard] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [selectedSummaryDate, setSelectedSummaryDate] = useState<string | null>(null);
   const { isDeleteEnabled, enableDelete } = useDeleteProtection();
 
   // Fetch all matches (unfiltered) for summary card generation
@@ -41,21 +44,27 @@ export default function HistoryPage() {
     filterPlayer,
   });
 
-  // Compute today's summary card data from all matches (not filtered ones)
-  const summaryCardData = useMemo(() => {
-    const todaysMatches = getTodaysMatches(allMatches);
-    return computeSummaryCardData(todaysMatches, players);
-  }, [allMatches, players]);
+  // Get all dates that have matches
+  const availableMatchDates = useMemo(
+    () => getAvailableMatchDates(allMatches),
+    [allMatches]
+  );
 
-  const todaysMatchCount = useMemo(() => getTodaysMatches(allMatches).length, [allMatches]);
+  // Compute summary card data for the selected date
+  const summaryCardData = useMemo(() => {
+    if (!selectedSummaryDate) return null;
+    const targetDate = parseISO(selectedSummaryDate);
+    const matchesForDate = getMatchesByDate(allMatches, targetDate);
+    return computeSummaryCardData(matchesForDate, players, targetDate);
+  }, [allMatches, players, selectedSummaryDate]);
 
   const handleGenerateSummaryCard = () => {
-    if (todaysMatchCount === 0) {
-      toast.error('No matches today', {
-        description: 'Play some matches first to generate a summary card!',
-      });
-      return;
-    }
+    setShowDatePicker(true);
+  };
+
+  const handleDateSelected = (dateStr: string) => {
+    setSelectedSummaryDate(dateStr);
+    setShowDatePicker(false);
     setShowSummaryCard(true);
   };
 
@@ -154,11 +163,20 @@ export default function HistoryPage() {
         loading={deleting}
       />
 
-      <SummaryCardModal
-        isOpen={showSummaryCard}
-        onClose={() => setShowSummaryCard(false)}
-        data={summaryCardData}
+      <DatePickerModal
+        isOpen={showDatePicker}
+        onClose={() => setShowDatePicker(false)}
+        onSelectDate={handleDateSelected}
+        availableDates={availableMatchDates}
       />
+
+      {summaryCardData && (
+        <SummaryCardModal
+          isOpen={showSummaryCard}
+          onClose={() => setShowSummaryCard(false)}
+          data={summaryCardData}
+        />
+      )}
       
       <HistoryHeader totalMatches={matches.length} />
       

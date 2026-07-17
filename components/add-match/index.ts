@@ -4,3 +4,6 @@ export { MatchTypeSelector } from './MatchTypeSelector';
 export { PlayerSelector } from './PlayerSelector';
 export { ScoreInput } from './ScoreInput';
 export { WinnerPreview } from './WinnerPreview';
+export { DoublesPlayerSelector } from './DoublesPlayerSelector';
+export { PlayerSelectionModal } from './PlayerSelectionModal';
+export { SinglesPlayerSelector } from './SinglesPlayerSelector';

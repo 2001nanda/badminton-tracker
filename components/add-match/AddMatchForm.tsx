@@ -10,6 +10,8 @@ import { toast } from 'sonner';
 import { matchFormSchema, MatchFormData } from '@/lib/schemas/matchSchema';
 import { MatchTypeSelector } from './MatchTypeSelector';
 import { PlayerSelector } from './PlayerSelector';
+import { DoublesPlayerSelector } from './DoublesPlayerSelector';
+import { SinglesPlayerSelector } from './SinglesPlayerSelector';
 import { ScoreInput } from './ScoreInput';
 import { WinnerPreview } from './WinnerPreview';
 import { useOptimizedPlayers } from '@/lib/hooks/useOptimizedPlayers';
@@ -89,6 +91,66 @@ export function AddMatchForm() {
       });
 
       if (result.success) {
+        // Cache matchup in localStorage for quick selection in the future
+        if (data.type === 'singles') {
+          const teamA = [data.playerA];
+          const teamB = [data.playerB];
+          
+          try {
+            const storedMatchups = localStorage.getItem('badminton:recent-singles-matchups');
+            const recentMatchups = storedMatchups ? JSON.parse(storedMatchups) : [];
+            const newMatchup = { teamA, teamB };
+            
+            // Remove duplicates
+            const filteredMatchups = recentMatchups.filter((m: any) => {
+              const matchesExactly = 
+                (m.teamA[0] === teamA[0] && m.teamB[0] === teamB[0]);
+              return !matchesExactly;
+            });
+            
+            filteredMatchups.unshift(newMatchup);
+            localStorage.setItem('badminton:recent-singles-matchups', JSON.stringify(filteredMatchups.slice(0, 5)));
+          } catch (e) {
+            console.error('Failed to update recent singles matchups in localStorage', e);
+          }
+        } else if (data.type === 'doubles') {
+          const teamA = [data.playerA, data.playerC!];
+          const teamB = [data.playerB, data.playerD!];
+          
+          try {
+            // Update recent matchups
+            const storedMatchups = localStorage.getItem('badminton:recent-matchups');
+            const recentMatchups = storedMatchups ? JSON.parse(storedMatchups) : [];
+            const newMatchup = { teamA, teamB };
+            
+            // Remove duplicates
+            const filteredMatchups = recentMatchups.filter((m: any) => {
+              const matchesExactly = 
+                (m.teamA[0] === teamA[0] && m.teamA[1] === teamA[1] && m.teamB[0] === teamB[0] && m.teamB[1] === teamB[1]);
+              return !matchesExactly;
+            });
+            
+            filteredMatchups.unshift(newMatchup);
+            localStorage.setItem('badminton:recent-matchups', JSON.stringify(filteredMatchups.slice(0, 5)));
+
+            // Update recent pairs (individual teams)
+            const storedPairs = localStorage.getItem('badminton:recent-pairs');
+            let recentPairs = storedPairs ? JSON.parse(storedPairs) : [];
+            
+            [teamA, teamB].forEach(pair => {
+              // Remove duplicates of this pair (order insensitive)
+              recentPairs = recentPairs.filter((p: string[]) => 
+                !(p[0] === pair[0] && p[1] === pair[1]) && 
+                !(p[0] === pair[1] && p[1] === pair[0])
+              );
+              recentPairs.unshift(pair);
+            });
+            localStorage.setItem('badminton:recent-pairs', JSON.stringify(recentPairs.slice(0, 10)));
+          } catch (e) {
+            console.error('Failed to update recent teams in localStorage', e);
+          }
+        }
+
         toast.success('Match saved successfully! 🏸', {
           description: 'Stats updated for all players',
         });
@@ -165,72 +227,37 @@ export function AddMatchForm() {
       <div className="glass-card rounded-2xl p-6">
         <h2 className="text-base font-semibold text-white mb-5">Players</h2>
         
-        <div className="space-y-6">
-          {/* Team A */}
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-2 h-2 rounded-full bg-emerald-400" />
-              <span className="text-sm font-semibold text-emerald-400">Team A</span>
-            </div>
-            <div className="space-y-3">
-              <PlayerSelector
-                label={formValues.type === 'singles' ? 'Player' : 'Player 1'}
-                value={formValues.playerA}
-                onChange={(value) => setValue('playerA', value)}
-                players={players}
-                excludeIds={selectedPlayers.filter(id => id !== formValues.playerA)}
-                error={errors.playerA?.message}
-              />
-              
-              {formValues.type === 'doubles' && (
-                <PlayerSelector
-                  label="Player 2"
-                  value={formValues.playerC || ''}
-                  onChange={(value) => setValue('playerC', value)}
-                  players={players}
-                  excludeIds={selectedPlayers.filter(id => id !== formValues.playerC)}
-                  error={errors.playerC?.message}
-                />
-              )}
-            </div>
-          </div>
-
-          {/* VS Divider */}
-          <div className="flex items-center justify-center">
-            <span className="text-xs font-bold text-slate-600 px-4 py-1.5 rounded-full bg-white/5">
-              VS
-            </span>
-          </div>
-
-          {/* Team B */}
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-2 h-2 rounded-full bg-yellow-400" />
-              <span className="text-sm font-semibold text-yellow-400">Team B</span>
-            </div>
-            <div className="space-y-3">
-              <PlayerSelector
-                label={formValues.type === 'singles' ? 'Player' : 'Player 1'}
-                value={formValues.playerB}
-                onChange={(value) => setValue('playerB', value)}
-                players={players}
-                excludeIds={selectedPlayers.filter(id => id !== formValues.playerB)}
-                error={errors.playerB?.message}
-              />
-              
-              {formValues.type === 'doubles' && (
-                <PlayerSelector
-                  label="Player 2"
-                  value={formValues.playerD || ''}
-                  onChange={(value) => setValue('playerD', value)}
-                  players={players}
-                  excludeIds={selectedPlayers.filter(id => id !== formValues.playerD)}
-                  error={errors.playerD?.message}
-                />
-              )}
-            </div>
-          </div>
-        </div>
+        {formValues.type === 'singles' ? (
+          <SinglesPlayerSelector
+            players={players}
+            selected={[
+              formValues.playerA,
+              formValues.playerB,
+            ]}
+            onChange={(selected) => {
+              setValue('playerA', selected[0] || '');
+              setValue('playerB', selected[1] || '');
+            }}
+            errors={errors}
+          />
+        ) : (
+          <DoublesPlayerSelector
+            players={players}
+            selected={[
+              formValues.playerA,
+              formValues.playerC || '',
+              formValues.playerB,
+              formValues.playerD || '',
+            ]}
+            onChange={(selected) => {
+              setValue('playerA', selected[0] || '');
+              setValue('playerC', selected[1] || '');
+              setValue('playerB', selected[2] || '');
+              setValue('playerD', selected[3] || '');
+            }}
+            errors={errors}
+          />
+        )}
       </div>
 
       {/* Scores */}

@@ -1,10 +1,9 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { Search, Check, Users, Trash2, X } from 'lucide-react';
+import { Check, Users, Trash2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Player } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
@@ -30,7 +29,6 @@ export function PlayerSelectionModal({
   onConfirm,
   mode,
 }: PlayerSelectionModalProps) {
-  const [searchQuery, setSearchQuery] = useState('');
   const [tempSelected, setTempSelected] = useState<string[]>([]);
   const [recentMatchups, setRecentMatchups] = useState<RecentMatchup[]>([]);
   const [recentPairs, setRecentPairs] = useState<string[][]>([]);
@@ -41,7 +39,6 @@ export function PlayerSelectionModal({
   useEffect(() => {
     if (open) {
       setTempSelected(selectedIds.filter(Boolean));
-      setSearchQuery('');
       
       // Load recent matchups from localStorage based on mode
       try {
@@ -78,12 +75,6 @@ export function PlayerSelectionModal({
       .slice(0, 2);
   };
 
-  // Filter players based on search query
-  const filteredPlayers = useMemo(() => {
-    return players.filter(player =>
-      player.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [players, searchQuery]);
 
   // Handle individual player selection/toggle
   const handleTogglePlayer = (id: string) => {
@@ -145,8 +136,8 @@ export function PlayerSelectionModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg bg-[#0F141C] border border-white/10 text-white rounded-2xl p-6 overflow-hidden flex flex-col max-h-[90vh]">
-        <DialogHeader className="mb-4">
+      <DialogContent className="max-w-lg bg-[#0F141C] border border-white/10 text-white rounded-2xl p-4 sm:p-6 overflow-hidden flex flex-col max-h-[95vh] sm:max-h-[90vh]">
+        <DialogHeader className="mb-3">
           <DialogTitle className="text-xl font-bold flex items-center gap-2">
             <Users className="w-5 h-5 text-emerald-400" />
             Select Players ({mode === 'singles' ? 'Singles' : 'Doubles'})
@@ -154,7 +145,7 @@ export function PlayerSelectionModal({
         </DialogHeader>
 
         {/* Live Selection Tracker */}
-        <div className="bg-white/5 border border-white/10 rounded-xl p-4 mb-4">
+        <div className="bg-white/5 border border-white/10 rounded-xl p-3 sm:p-4 mb-3">
           <div className="text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wider">
             Live Preview
           </div>
@@ -232,14 +223,14 @@ export function PlayerSelectionModal({
 
         {/* Quick Select Recents */}
         {(recentMatchups.length > 0 || recentPairs.length > 0) && (
-          <div className="mb-4 space-y-2">
+          <div className="mb-3 space-y-2">
             <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
               Recent Matchups {mode === 'doubles' && '& Pairs'}
             </div>
             
             {/* Recent Matchups */}
             {recentMatchups.length > 0 && (
-              <div className="flex flex-wrap gap-2">
+              <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
                 {recentMatchups.map((m, idx) => {
                   const namesA = m.teamA.map(id => playerMap.get(id)?.name || 'Unknown');
                   const namesB = m.teamB.map(id => playerMap.get(id)?.name || 'Unknown');
@@ -249,7 +240,7 @@ export function PlayerSelectionModal({
                       key={idx}
                       type="button"
                       onClick={() => handleSelectRecentMatchup(m)}
-                      className="text-xs bg-white/5 hover:bg-emerald-500/15 border border-white/10 hover:border-emerald-500/40 text-slate-300 hover:text-white px-2.5 py-1.5 rounded-full transition-all duration-150 text-left truncate max-w-full"
+                      className="text-xs bg-white/5 hover:bg-emerald-500/15 border border-white/10 hover:border-emerald-500/40 text-slate-300 hover:text-white px-2.5 py-1.5 rounded-full transition-all duration-150 text-left whitespace-nowrap shrink-0"
                     >
                       🏸 {label}
                     </button>
@@ -260,7 +251,7 @@ export function PlayerSelectionModal({
 
             {/* Recent Pairs (only for doubles) */}
             {mode === 'doubles' && recentPairs.length > 0 && (
-              <div className="flex flex-wrap gap-2">
+              <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
                 {recentPairs.map((p, idx) => {
                   const names = p.map(id => playerMap.get(id)?.name || 'Unknown');
                   return (
@@ -268,7 +259,7 @@ export function PlayerSelectionModal({
                       key={idx}
                       type="button"
                       onClick={() => handleSelectRecentPair(p)}
-                      className="text-xs bg-white/5 hover:bg-emerald-500/15 border border-white/10 hover:border-emerald-500/40 text-slate-300 hover:text-white px-2.5 py-1.5 rounded-full transition-all duration-150"
+                      className="text-xs bg-white/5 hover:bg-emerald-500/15 border border-white/10 hover:border-emerald-500/40 text-slate-300 hover:text-white px-2.5 py-1.5 rounded-full transition-all duration-150 whitespace-nowrap shrink-0"
                     >
                       👥 {names.join(' & ')}
                     </button>
@@ -279,33 +270,14 @@ export function PlayerSelectionModal({
           </div>
         )}
 
-        {/* Search */}
-        <div className="relative mb-3 flex items-center">
-          <Search className="absolute left-3 w-4 h-4 text-slate-400" />
-          <Input
-            placeholder="Search players..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 h-11 bg-white/5 border-white/10 focus:border-emerald-500/50 text-white placeholder:text-slate-500 rounded-xl focus-visible:ring-0 focus-visible:ring-offset-0"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery('')}
-              className="absolute right-3 p-1 rounded-full text-slate-400 hover:text-white hover:bg-white/10"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          )}
-        </div>
-
         {/* Scrollable Player List */}
-        <div className="flex-1 overflow-y-auto max-h-[30vh] min-h-[150px] pr-1 space-y-1.5">
-          {filteredPlayers.length === 0 ? (
+        <div className="flex-1 overflow-y-auto max-h-[30vh] min-h-[120px] pr-1 space-y-1.5">
+          {players.length === 0 ? (
             <div className="py-8 text-center text-sm text-slate-500">
-              No players match your search.
+              No players available.
             </div>
           ) : (
-            filteredPlayers.map((player) => {
+            players.map((player) => {
               const selectedIndex = tempSelected.indexOf(player.id);
               const isSelected = selectedIndex !== -1;
 

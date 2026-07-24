@@ -1,4 +1,4 @@
-import { collection, addDoc, doc, updateDoc, Timestamp, runTransaction, deleteDoc, writeBatch, getDoc } from 'firebase/firestore';
+import { collection, addDoc, doc, updateDoc, Timestamp, runTransaction, deleteDoc, writeBatch, getDoc, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Match } from '@/lib/types';
 
@@ -226,6 +226,39 @@ export async function deleteMultipleMatches(matchIds: string[]) {
     return { success: true };
   } catch (error) {
     console.error('Error deleting matches:', error);
+    return { success: false, error };
+  }
+}
+
+/**
+ * Automatically cleans up (deletes) matches older than 14 days
+ * without updating/decrementing player statistics.
+ */
+export async function cleanupOldMatches() {
+  try {
+    const fourteenDaysAgo = new Date();
+    fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+
+    console.log('🧹 Running automatic cleanup of matches older than 14 days...');
+    const matchesRef = collection(db, 'matches');
+    const q = query(matchesRef, where('createdAt', '<', Timestamp.fromDate(fourteenDaysAgo)));
+    
+    const querySnapshot = await getDocs(q);
+    if (querySnapshot.empty) {
+      console.log('🧹 Auto-cleanup: No matches older than 14 days found.');
+      return { success: true, deletedCount: 0 };
+    }
+
+    const batch = writeBatch(db);
+    querySnapshot.docs.forEach((doc) => {
+      batch.delete(doc.ref);
+    });
+
+    await batch.commit();
+    console.log(`🧹 Auto-cleanup: Successfully deleted ${querySnapshot.size} matches older than 14 days.`);
+    return { success: true, deletedCount: querySnapshot.size };
+  } catch (error) {
+    console.error('🧹 Auto-cleanup Error: Failed to cleanup old matches:', error);
     return { success: false, error };
   }
 }

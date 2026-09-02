@@ -6,7 +6,7 @@ import { MatchTimeline } from '@/components/history/MatchTimeline';
 import { SummaryCardModal, DatePickerModal } from '@/components/summary-card';
 import { useMatchHistory } from '@/lib/hooks/useMatchHistory';
 import { useOptimizedPlayers } from '@/lib/hooks/useOptimizedPlayers';
-import { getMatchesByDate, getAvailableMatchDates, computeSummaryCardData } from '@/lib/utils/summaryCardUtils';
+import { getMatchesByDate, getAvailableMatchDates } from '@/lib/utils/summaryCardUtils';
 import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -50,13 +50,16 @@ export default function HistoryPage() {
     [allMatches]
   );
 
-  // Compute summary card data for the selected date
-  const summaryCardData = useMemo(() => {
-    if (!selectedSummaryDate) return null;
+  // Matches for the selected summary date
+  const selectedDateMatches = useMemo(() => {
+    if (!selectedSummaryDate) return [];
     const targetDate = parseISO(selectedSummaryDate);
-    const matchesForDate = getMatchesByDate(allMatches, targetDate);
-    return computeSummaryCardData(matchesForDate, players, targetDate);
-  }, [allMatches, players, selectedSummaryDate]);
+    return getMatchesByDate(allMatches, targetDate);
+  }, [allMatches, selectedSummaryDate]);
+
+  const targetSummaryDate = useMemo(() => {
+    return selectedSummaryDate ? parseISO(selectedSummaryDate) : new Date();
+  }, [selectedSummaryDate]);
 
   const handleGenerateSummaryCard = () => {
     setShowDatePicker(true);
@@ -170,11 +173,13 @@ export default function HistoryPage() {
         availableDates={availableMatchDates}
       />
 
-      {summaryCardData && (
+      {selectedSummaryDate && (
         <SummaryCardModal
           isOpen={showSummaryCard}
           onClose={() => setShowSummaryCard(false)}
-          data={summaryCardData}
+          matchesForDate={selectedDateMatches}
+          players={players}
+          targetDate={targetSummaryDate}
         />
       )}
       

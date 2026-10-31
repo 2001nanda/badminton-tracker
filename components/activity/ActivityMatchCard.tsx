@@ -4,7 +4,7 @@ import { memo, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Match, Player } from '@/lib/types';
 import { format } from 'date-fns';
-import { Trophy, User, Users, Flame, Trash2 } from 'lucide-react';
+import { Trophy, User, Users, Trash2, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -30,7 +30,7 @@ export const ActivityMatchCard = memo(function ActivityMatchCard({
   const [deleting, setDeleting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const { isDeleteEnabled } = useDeleteProtection();
-  
+
   const handleDeleteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     setShowDeleteDialog(true);
@@ -40,20 +40,15 @@ export const ActivityMatchCard = memo(function ActivityMatchCard({
     setDeleting(true);
     try {
       const result = await deleteMatch(match.id);
-      
       if (result.success) {
         toast.success('Match deleted successfully! 🗑️');
         setShowDeleteDialog(false);
       } else {
-        toast.error('Failed to delete match', {
-          description: 'Please try again',
-        });
+        toast.error('Failed to delete match. Please try again.');
       }
     } catch (error) {
       console.error('Error deleting match:', error);
-      toast.error('An error occurred', {
-        description: 'Please check your connection and try again',
-      });
+      toast.error('An error occurred while deleting match.');
     } finally {
       setDeleting(false);
     }
@@ -65,27 +60,46 @@ export const ActivityMatchCard = memo(function ActivityMatchCard({
       onToggleSelection(match.id);
     }
   };
-  
+
   const getPlayerName = (id: string) => {
     return players.find((p) => p.id === id)?.name || 'Unknown';
   };
 
-  const isWinner = (playerId: string) => match.winner.includes(playerId);
+  const isWinner = (playerId: string) => match.winner && match.winner.includes(playerId);
 
-  const teamAPlayers = match.type === 'singles' 
-    ? [match.players[0]] 
-    : [match.players[0], match.players[1]];
-  
-  const teamBPlayers = match.type === 'singles'
-    ? [match.players[1]]
-    : [match.players[2], match.players[3]];
+  const teamAPlayers =
+    match.type === 'singles' ? [match.players[0]] : [match.players[0], match.players[1]];
+  const teamBPlayers =
+    match.type === 'singles' ? [match.players[1]] : [match.players[2], match.players[3]];
 
-  const teamAWon = isWinner(teamAPlayers[0]);
-  const winnerNames = match.winner.map(id => getPlayerName(id)).join(' + ');
-  const loserNames = match.players
-    .filter(id => !match.winner.includes(id))
-    .map(id => getPlayerName(id))
-    .join(' + ');
+  const teamAName = teamAPlayers.map(getPlayerName).join(' + ');
+  const teamBName = teamBPlayers.map(getPlayerName).join(' + ');
+
+  const teamAWon = teamAPlayers.some(isWinner);
+
+  // Set-by-set score summary & games won count
+  const s1 = match.score?.set1;
+  const s2 = match.score?.set2;
+  const s3 = match.score?.set3;
+
+  let setsWonA = 0;
+  let setsWonB = 0;
+
+  if (s1 && (s1.teamA > 0 || s1.teamB > 0)) {
+    if (s1.teamA > s1.teamB) setsWonA++;
+    else if (s1.teamB > s1.teamA) setsWonB++;
+  }
+  if (s2 && (s2.teamA > 0 || s2.teamB > 0)) {
+    if (s2.teamA > s2.teamB) setsWonA++;
+    else if (s2.teamB > s2.teamA) setsWonB++;
+  }
+  if (s3 && (s3.teamA > 0 || s3.teamB > 0)) {
+    if (s3.teamA > s3.teamB) setsWonA++;
+    else if (s3.teamB > s3.teamA) setsWonB++;
+  }
+
+  const isMultiSet = (s2 && (s2.teamA > 0 || s2.teamB > 0)) || (s3 && (s3.teamA > 0 || s3.teamB > 0));
+  const matchDate = match.createdAt instanceof Date ? match.createdAt : new Date(match.createdAt);
 
   return (
     <>
@@ -100,135 +114,135 @@ export const ActivityMatchCard = memo(function ActivityMatchCard({
         variant="danger"
         loading={deleting}
       />
-      
-      <Card 
+
+      <Card
         className={cn(
-          "border-white/10 bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-sm hover:from-white/10 hover:to-white/15 transition-all relative",
-          selectionMode && "cursor-pointer",
-          isSelected && "ring-2 ring-emerald-500"
+          'border-white/10 bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-sm hover:from-white/10 hover:to-white/15 transition-all relative overflow-hidden rounded-2xl',
+          selectionMode && 'cursor-pointer',
+          isSelected && 'ring-2 ring-emerald-500'
         )}
         onClick={selectionMode ? handleToggle : undefined}
       >
-      <div className="p-5">
-        {/* Selection Checkbox */}
-        {selectionMode && (
-          <div className="absolute top-4 left-4 z-10">
-            <div 
-              className={cn(
-                "w-6 h-6 rounded border-2 flex items-center justify-center transition-all",
-                isSelected 
-                  ? "bg-emerald-500 border-emerald-500" 
-                  : "bg-white/10 border-white/30"
-              )}
-            >
-              {isSelected && (
-                <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                </svg>
-              )}
+        <div className="p-4 sm:p-5">
+          {/* Selection Checkbox */}
+          {selectionMode && (
+            <div className="absolute top-4 left-4 z-10">
+              <div
+                className={cn(
+                  'w-6 h-6 rounded-md border-2 flex items-center justify-center transition-all',
+                  isSelected ? 'bg-emerald-500 border-emerald-500 text-white' : 'bg-white/10 border-white/30'
+                )}
+              >
+                {isSelected && <CheckCircle2 className="w-4 h-4 stroke-[3]" />}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Delete Button (only when NOT in selection mode AND delete is enabled) */}
-        {!selectionMode && isDeleteEnabled && (
-          <div className="absolute top-4 right-4 z-10">
-            <Button
-              onClick={handleDeleteClick}
-              disabled={deleting}
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 p-0 hover:bg-red-500/20 hover:text-red-400 text-gray-500"
-            >
-              <Trash2 className="w-4 h-4" />
-            </Button>
-          </div>
-        )}
-
-        {/* Header */}
-        <div className={cn(
-          "flex items-start justify-between mb-4",
-          selectionMode && "ml-8"
-        )}>
-          <div className="flex items-center space-x-3">
-            <div className="p-2 rounded-lg bg-emerald-500/20">
-              {match.type === 'singles' ? (
-                <User className="w-4 h-4 text-emerald-400" />
-              ) : (
-                <Users className="w-4 h-4 text-emerald-400" />
-              )}
+          {/* Delete Button (only when delete mode enabled) */}
+          {!selectionMode && isDeleteEnabled && (
+            <div className="absolute top-4 right-4 z-10">
+              <Button
+                onClick={handleDeleteClick}
+                disabled={deleting}
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0 hover:bg-red-500/20 hover:text-red-400 text-slate-500 rounded-lg"
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
             </div>
-            <div>
-              <p className="text-sm font-semibold text-emerald-400 capitalize">
+          )}
+
+          {/* Card Top Meta */}
+          <div className={cn('flex items-center justify-between mb-3', selectionMode && 'ml-8')}>
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-400">
+                {match.type === 'singles' ? <User className="w-3.5 h-3.5" /> : <Users className="w-3.5 h-3.5" />}
+              </div>
+              <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">
                 {match.type}
-              </p>
-              <p className="text-xs text-gray-500">
-                {format(match.createdAt, 'h:mm a')}
-              </p>
+              </span>
+              <span className="text-slate-500 text-xs">•</span>
+              <span className="text-xs text-slate-400">{format(matchDate, 'h:mm a')}</span>
+            </div>
+
+            <div className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-white/10 text-slate-300 mr-8">
+              {isMultiSet ? `Sets: ${setsWonA} - ${setsWonB}` : `Game: ${s1?.teamA ?? 0} - ${s1?.teamB ?? 0}`}
             </div>
           </div>
-          
-          {!selectionMode && <Trophy className="w-5 h-5 text-yellow-400 mr-10" />}
-        </div>
 
-        {/* Match Summary */}
-        <div className="mb-4">
-          <div className="flex items-center space-x-2 mb-2">
-            <Flame className="w-4 h-4 text-yellow-400" />
-            <p className="text-white font-semibold">
-              {winnerNames}
-            </p>
-            <span className="text-gray-400">defeated</span>
-            <p className="text-gray-300">
-              {loserNames}
-            </p>
+          {/* Team A vs Team B Sports Scoreboard Row */}
+          <div className="space-y-2 mb-3">
+            {/* Team A */}
+            <div
+              className={cn(
+                'flex items-center justify-between p-2.5 rounded-xl border transition-colors',
+                teamAWon
+                  ? 'bg-emerald-500/10 border-emerald-500/30'
+                  : 'bg-white/5 border-transparent'
+              )}
+            >
+              <div className="flex items-center gap-2 min-w-0 pr-2">
+                {teamAWon && <Trophy className="w-4 h-4 text-yellow-400 shrink-0" />}
+                <span className={cn('text-sm font-semibold truncate', teamAWon ? 'text-white' : 'text-slate-300')}>
+                  {teamAName}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 shrink-0 font-mono text-sm">
+                {s1 && <span className={cn('font-bold', s1.teamA > s1.teamB ? 'text-emerald-400' : 'text-slate-400')}>{s1.teamA}</span>}
+                {isMultiSet && s2 && <span className={cn('font-bold', s2.teamA > s2.teamB ? 'text-emerald-400' : 'text-slate-400')}>{s2.teamA}</span>}
+                {isMultiSet && s3 && (s3.teamA > 0 || s3.teamB > 0) && (
+                  <span className={cn('font-bold', s3.teamA > s3.teamB ? 'text-emerald-400' : 'text-slate-400')}>{s3.teamA}</span>
+                )}
+              </div>
+            </div>
+
+            {/* Team B */}
+            <div
+              className={cn(
+                'flex items-center justify-between p-2.5 rounded-xl border transition-colors',
+                !teamAWon
+                  ? 'bg-emerald-500/10 border-emerald-500/30'
+                  : 'bg-white/5 border-transparent'
+              )}
+            >
+              <div className="flex items-center gap-2 min-w-0 pr-2">
+                {!teamAWon && <Trophy className="w-4 h-4 text-yellow-400 shrink-0" />}
+                <span className={cn('text-sm font-semibold truncate', !teamAWon ? 'text-white' : 'text-slate-300')}>
+                  {teamBName}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 shrink-0 font-mono text-sm">
+                {s1 && <span className={cn('font-bold', s1.teamB > s1.teamA ? 'text-emerald-400' : 'text-slate-400')}>{s1.teamB}</span>}
+                {isMultiSet && s2 && <span className={cn('font-bold', s2.teamB > s2.teamA ? 'text-emerald-400' : 'text-slate-400')}>{s2.teamB}</span>}
+                {isMultiSet && s3 && (s3.teamA > 0 || s3.teamB > 0) && (
+                  <span className={cn('font-bold', s3.teamB > s3.teamA ? 'text-emerald-400' : 'text-slate-400')}>{s3.teamB}</span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Score Pill Ribbon */}
+          <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-white/5 text-[11px] text-slate-400">
+            <span className="font-semibold text-slate-500">Score:</span>
+            {s1 && (
+              <span className="px-2 py-0.5 rounded bg-white/5 font-mono text-slate-300">
+                {isMultiSet ? `S1: ${s1.teamA}-${s1.teamB}` : `${s1.teamA}-${s1.teamB}`}
+              </span>
+            )}
+            {isMultiSet && s2 && (
+              <span className="px-2 py-0.5 rounded bg-white/5 font-mono text-slate-300">
+                S2: {s2.teamA}-${s2.teamB}
+              </span>
+            )}
+            {isMultiSet && s3 && (s3.teamA > 0 || s3.teamB > 0) && (
+              <span className="px-2 py-0.5 rounded bg-white/5 font-mono text-slate-300">
+                S3: {s3.teamA}-${s3.teamB}
+              </span>
+            )}
           </div>
         </div>
-
-        {/* Score */}
-        <div className="flex items-center space-x-4">
-          <div className={cn(
-            'flex-1 p-3 rounded-lg text-center',
-            teamAWon ? 'bg-emerald-500/20 border border-emerald-500/30' : 'bg-white/5'
-          )}>
-            <p className={cn(
-              'text-2xl font-bold',
-              teamAWon ? 'text-emerald-400' : 'text-gray-500'
-            )}>
-              {match.score.set1.teamA}
-            </p>
-            <p className={cn(
-              'text-xs',
-              teamAWon ? 'text-emerald-400' : 'text-gray-600'
-            )}>
-              {match.score.set2.teamA}
-              {match.score.set3 && ` • ${match.score.set3.teamA}`}
-            </p>
-          </div>
-
-          <span className="text-gray-600 font-bold">-</span>
-
-          <div className={cn(
-            'flex-1 p-3 rounded-lg text-center',
-            !teamAWon ? 'bg-emerald-500/20 border border-emerald-500/30' : 'bg-white/5'
-          )}>
-            <p className={cn(
-              'text-2xl font-bold',
-              !teamAWon ? 'text-emerald-400' : 'text-gray-500'
-            )}>
-              {match.score.set1.teamB}
-            </p>
-            <p className={cn(
-              'text-xs',
-              !teamAWon ? 'text-emerald-400' : 'text-gray-600'
-            )}>
-              {match.score.set2.teamB}
-              {match.score.set3 && ` • ${match.score.set3.teamB}`}
-            </p>
-          </div>
-        </div>
-      </div>
-    </Card>
+      </Card>
     </>
   );
 });

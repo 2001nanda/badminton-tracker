@@ -2,9 +2,9 @@
 
 import { memo } from 'react';
 import { Input } from '@/components/ui/input';
-import { Search, X } from 'lucide-react';
+import { Search, X, Users, Trophy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Player } from '@/lib/types';
+import { Player, PartnershipStats } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import {
   Select,
@@ -23,7 +23,12 @@ interface HistoryFiltersProps {
   onPeriodChange: (value: 'all' | 'week' | 'month') => void;
   filterPlayer: string;
   onPlayerChange: (value: string) => void;
+  filterPartnership: string;
+  onPartnershipChange: (value: string) => void;
+  filterWinner: string;
+  onWinnerChange: (value: string) => void;
   players: Player[];
+  partnerships: PartnershipStats[];
 }
 
 export const HistoryFilters = memo(function HistoryFilters({
@@ -35,27 +40,40 @@ export const HistoryFilters = memo(function HistoryFilters({
   onPeriodChange,
   filterPlayer,
   onPlayerChange,
+  filterPartnership,
+  onPartnershipChange,
+  filterWinner,
+  onWinnerChange,
   players,
+  partnerships,
 }: HistoryFiltersProps) {
-  const hasActiveFilters = filterType !== 'all' || filterPeriod !== 'all' || filterPlayer !== 'all' || searchQuery.trim() !== '';
+  const hasActiveFilters =
+    filterType !== 'all' ||
+    filterPeriod !== 'all' ||
+    filterPlayer !== 'all' ||
+    filterPartnership !== 'all' ||
+    filterWinner !== 'all' ||
+    searchQuery.trim() !== '';
 
   const clearFilters = () => {
     onSearchChange('');
     onTypeChange('all');
     onPeriodChange('all');
     onPlayerChange('all');
+    onPartnershipChange('all');
+    onWinnerChange('all');
   };
 
   return (
     <div className="mb-6 space-y-4">
-      {/* Search */}
+      {/* Search Input */}
       <div className="relative">
         <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
         <Input
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
-          placeholder="Search players..."
-          className="bg-white/5 border-white/10 text-white pl-12 pr-12 h-12"
+          placeholder="Search by player or partner names..."
+          className="bg-white/5 border-white/10 text-white pl-12 pr-12 h-12 rounded-xl"
         />
         {searchQuery && (
           <Button
@@ -69,28 +87,28 @@ export const HistoryFilters = memo(function HistoryFilters({
         )}
       </div>
 
-      {/* Filter Chips */}
-      <div className="flex flex-wrap gap-2">
+      {/* Filter Row 1: Chips */}
+      <div className="flex flex-wrap items-center gap-2">
         {/* Match Type */}
-        <div className="flex gap-2">
+        <div className="flex gap-1.5 bg-white/5 p-1 rounded-xl border border-white/10">
           <button
             onClick={() => onTypeChange('all')}
             className={cn(
-              'px-4 py-2 rounded-lg text-sm font-medium transition-all',
+              'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all',
               filterType === 'all'
-                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                : 'bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10'
+                ? 'bg-emerald-500 text-white shadow-sm'
+                : 'text-gray-400 hover:text-white'
             )}
           >
-            All Matches
+            All
           </button>
           <button
             onClick={() => onTypeChange('singles')}
             className={cn(
-              'px-4 py-2 rounded-lg text-sm font-medium transition-all',
+              'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all',
               filterType === 'singles'
-                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                : 'bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10'
+                ? 'bg-emerald-500 text-white shadow-sm'
+                : 'text-gray-400 hover:text-white'
             )}
           >
             Singles
@@ -98,10 +116,10 @@ export const HistoryFilters = memo(function HistoryFilters({
           <button
             onClick={() => onTypeChange('doubles')}
             className={cn(
-              'px-4 py-2 rounded-lg text-sm font-medium transition-all',
+              'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all',
               filterType === 'doubles'
-                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                : 'bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10'
+                ? 'bg-emerald-500 text-white shadow-sm'
+                : 'text-gray-400 hover:text-white'
             )}
           >
             Doubles
@@ -109,14 +127,25 @@ export const HistoryFilters = memo(function HistoryFilters({
         </div>
 
         {/* Period */}
-        <div className="flex gap-2">
+        <div className="flex gap-1.5 bg-white/5 p-1 rounded-xl border border-white/10">
+          <button
+            onClick={() => onPeriodChange('all')}
+            className={cn(
+              'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all',
+              filterPeriod === 'all'
+                ? 'bg-purple-600 text-white shadow-sm'
+                : 'text-gray-400 hover:text-white'
+            )}
+          >
+            All Time
+          </button>
           <button
             onClick={() => onPeriodChange('week')}
             className={cn(
-              'px-4 py-2 rounded-lg text-sm font-medium transition-all',
+              'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all',
               filterPeriod === 'week'
-                ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
-                : 'bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10'
+                ? 'bg-purple-600 text-white shadow-sm'
+                : 'text-gray-400 hover:text-white'
             )}
           >
             This Week
@@ -124,56 +153,76 @@ export const HistoryFilters = memo(function HistoryFilters({
           <button
             onClick={() => onPeriodChange('month')}
             className={cn(
-              'px-4 py-2 rounded-lg text-sm font-medium transition-all',
+              'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all',
               filterPeriod === 'month'
-                ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
-                : 'bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10'
+                ? 'bg-purple-600 text-white shadow-sm'
+                : 'text-gray-400 hover:text-white'
             )}
           >
             This Month
           </button>
         </div>
 
-        {/* Player Filter */}
-        <Select value={filterPlayer} onValueChange={onPlayerChange}>
-          <SelectTrigger className="w-[180px] bg-white/5 border-white/10 text-white hover:bg-white/10">
-            <SelectValue placeholder="All Players" />
-          </SelectTrigger>
-          <SelectContent 
-            className="bg-[#111827] border border-white/10 text-white z-[100]"
-            position="popper"
-            sideOffset={5}
+        {/* Clear Filters Button */}
+        {hasActiveFilters && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={clearFilters}
+            className="text-gray-400 hover:text-white text-xs h-9 rounded-xl ml-auto"
           >
-            <SelectItem 
-              value="all"
-              className="text-white hover:bg-white/10 focus:bg-white/10 focus:text-white cursor-pointer"
-            >
-              All Players
-            </SelectItem>
+            <X className="w-3.5 h-3.5 mr-1" />
+            Reset Filters
+          </Button>
+        )}
+      </div>
+
+      {/* Filter Row 2: Dropdowns */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
+        {/* Player Dropdown */}
+        <Select value={filterPlayer} onValueChange={onPlayerChange}>
+          <SelectTrigger className="bg-white/5 border-white/10 text-white h-10 rounded-xl text-xs">
+            <SelectValue placeholder="Filter Player" />
+          </SelectTrigger>
+          <SelectContent className="bg-[#111827] border-white/10 text-white z-[100]">
+            <SelectItem value="all">All Players</SelectItem>
             {players.map((player) => (
-              <SelectItem 
-                key={player.id} 
-                value={player.id}
-                className="text-white hover:bg-white/10 focus:bg-white/10 focus:text-white cursor-pointer"
-              >
+              <SelectItem key={player.id} value={player.id}>
                 {player.name}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
 
-        {/* Clear Filters */}
-        {hasActiveFilters && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={clearFilters}
-            className="text-gray-400 hover:text-white"
-          >
-            <X className="w-4 h-4 mr-1" />
-            Clear Filters
-          </Button>
-        )}
+        {/* Partnership Dropdown */}
+        <Select value={filterPartnership} onValueChange={onPartnershipChange}>
+          <SelectTrigger className="bg-white/5 border-white/10 text-white h-10 rounded-xl text-xs">
+            <SelectValue placeholder="Filter Partnership" />
+          </SelectTrigger>
+          <SelectContent className="bg-[#111827] border-white/10 text-white z-[100]">
+            <SelectItem value="all">All Partnerships</SelectItem>
+            {partnerships.map((p) => (
+              <SelectItem key={p.id} value={p.id}>
+                {p.duoName} ({p.matchesPlayed} matches)
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {/* Winner Filter Dropdown */}
+        <Select value={filterWinner} onValueChange={onWinnerChange}>
+          <SelectTrigger className="bg-white/5 border-white/10 text-white h-10 rounded-xl text-xs">
+            <SelectValue placeholder="Filter Winner" />
+          </SelectTrigger>
+          <SelectContent className="bg-[#111827] border-white/10 text-white z-[100]">
+            <SelectItem value="all">Any Winner</SelectItem>
+            {players.map((player) => (
+              <SelectItem key={player.id} value={player.id}>
+                Won by {player.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
     </div>
   );

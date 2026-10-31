@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { DesktopNavigation, MobileNavigation } from "@/components/Navigation";
+import { DesktopNavigation, MobileNavigation, MobileTopBar } from "@/components/Navigation";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { PWAInstallPrompt } from "@/components/pwa/PWAInstallPrompt";
@@ -36,6 +36,7 @@ export default function RootLayout({
       <body className={`${inter.className} bg-[#0B0F14] text-white antialiased`}>
         <ThemeProvider>
           <DeleteProtectionProvider>
+            <MobileTopBar />
             <DesktopNavigation />
             <main className="min-h-screen pb-20 md:pb-8">
               {children}

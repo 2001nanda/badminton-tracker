@@ -1,10 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { Users, ArrowLeftRight, Shuffle, Edit2, UserPlus } from 'lucide-react';
+import { Users, ArrowLeftRight, Shuffle, Edit2, UserPlus, Dices } from 'lucide-react';
 import { Player } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { PlayerSelectionModal } from './PlayerSelectionModal';
+import { RandomTeamGeneratorModal } from './RandomTeamGeneratorModal';
+import { useMatches } from '@/lib/hooks/useMatches';
 import { cn } from '@/lib/utils';
 
 interface DoublesPlayerSelectorProps {
@@ -26,6 +28,8 @@ export function DoublesPlayerSelector({
   errors,
 }: DoublesPlayerSelectorProps) {
   const [modalOpen, setModalOpen] = useState(false);
+  const [generatorOpen, setGeneratorOpen] = useState(false);
+  const { matches } = useMatches();
 
   const playerMap = new Map(players.map((p) => [p.id, p]));
 
@@ -69,12 +73,30 @@ export function DoublesPlayerSelector({
     onChange([selected[0], selected[1], selected[3], selected[2]]);
   };
 
+  const handleApplyGeneratedTeams = (teamA: [string, string], teamB: [string, string]) => {
+    onChange([teamA[0], teamA[1], teamB[0], teamB[1]]);
+  };
+
   // Check if we have any validation errors for the player fields
   const hasError = errors?.playerA || errors?.playerB || errors?.playerC || errors?.playerD;
   const errorMessage = errors?.playerA?.message || errors?.playerB?.message || errors?.playerC?.message || errors?.playerD?.message;
 
   return (
     <div className="space-y-4">
+      {/* Top action strip: Quick Team Generator */}
+      <div className="flex justify-end">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => setGeneratorOpen(true)}
+          className="bg-white/5 border-white/10 hover:bg-emerald-500/10 hover:text-emerald-400 text-slate-300 text-xs h-8 px-2.5 rounded-xl flex items-center gap-1.5"
+        >
+          <Dices className="w-3.5 h-3.5 text-emerald-400" />
+          <span>Balanced Team Generator</span>
+        </Button>
+      </div>
+
       {!hasAllPlayers ? (
         // Empty State: Click to select players
         <button
@@ -225,6 +247,15 @@ export function DoublesPlayerSelector({
         selectedIds={selected}
         onConfirm={onChange}
         mode="doubles"
+      />
+
+      {/* Random Balanced Team Generator Modal */}
+      <RandomTeamGeneratorModal
+        open={generatorOpen}
+        onOpenChange={setGeneratorOpen}
+        players={players}
+        allMatches={matches}
+        onApplyTeams={handleApplyGeneratedTeams}
       />
     </div>
   );

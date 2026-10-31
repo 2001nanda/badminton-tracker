@@ -19,74 +19,109 @@ export function useRankings(players: Player[], period: RankingPeriod, matchType:
   const { matches: monthMatches } = useMatchesThisMonth();
 
   const rankedPlayers = useMemo(() => {
-    const playersWithMatches = players.filter(p => getTotalMatches(p) > 0);
-    
+    const playersWithMatches = players.filter((p) => getTotalMatches(p) > 0);
+
+    // ==========================================
+    // ALL TIME RANKINGS
+    // ==========================================
     if (period === 'all-time') {
-      // For all-time with match type filter, recalculate stats
-      if (matchType !== 'all') {
-        const filteredMatches = allMatches.filter(m => m.type === matchType);
-        const filteredStats = new Map<string, { wins: number; losses: number }>();
-        
-        filteredMatches.forEach(match => {
-          match.players.forEach(playerId => {
-            if (!filteredStats.has(playerId)) {
-              filteredStats.set(playerId, { wins: 0, losses: 0 });
-            }
-            
-            const stats = filteredStats.get(playerId)!;
-            if (match.winner.includes(playerId)) {
-              stats.wins++;
-            } else {
-              stats.losses++;
-            }
-          });
+      if (matchType === 'all') {
+        // Overall All-Time: Use permanent lifetime wins/losses
+        return sortPlayersByRank(playersWithMatches);
+      }
+
+      // Count matches currently present in the matches collection
+      const filteredMatches = allMatches.filter((m) => m.type === matchType);
+      const matchStats = new Map<string, { wins: number; losses: number }>();
+
+      filteredMatches.forEach((match) => {
+        match.players.forEach((playerId) => {
+          if (!matchStats.has(playerId)) {
+            matchStats.set(playerId, { wins: 0, losses: 0 });
+          }
+          const s = matchStats.get(playerId)!;
+          if (match.winner && match.winner.includes(playerId)) {
+            s.wins++;
+          } else {
+            s.losses++;
+          }
         });
-        
-        const filteredPlayers = playersWithMatches
-          .map(player => {
-            const stats = filteredStats.get(player.id) || { wins: 0, losses: 0 };
+      });
+
+      if (matchType === 'singles') {
+        // Singles All-Time: Combine permanent player singles aggregate stats with match documents
+        const singlesPlayers = playersWithMatches
+          .map((player) => {
+            const m = matchStats.get(player.id) || { wins: 0, losses: 0 };
+            const wins = Math.max(m.wins, player.singlesWins || 0);
+            const losses = Math.max(m.losses, player.singlesLosses || 0);
+            const singlesMatches = Math.max(m.wins + m.losses, player.singlesMatches || wins + losses);
+
             return {
               ...player,
-              wins: stats.wins,
-              losses: stats.losses,
+              wins,
+              losses,
+              singlesWins: wins,
+              singlesLosses: losses,
+              singlesMatches,
             };
           })
-          .filter(p => p.wins + p.losses > 0);
-        
-        return sortPlayersByRank(filteredPlayers);
+          .filter((p) => p.wins + p.losses > 0 || (p.singlesMatches && p.singlesMatches > 0));
+
+        return sortPlayersByRank(singlesPlayers);
       }
-      
-      return sortPlayersByRank(playersWithMatches);
+
+      if (matchType === 'doubles') {
+        // Doubles All-Time: Combine permanent player doubles aggregate stats with match documents
+        const doublesPlayers = playersWithMatches
+          .map((player) => {
+            const m = matchStats.get(player.id) || { wins: 0, losses: 0 };
+            const wins = Math.max(m.wins, player.doublesWins ?? player.wins);
+            const losses = Math.max(m.losses, player.doublesLosses ?? player.losses);
+            const doublesMatches = Math.max(m.wins + m.losses, player.doublesMatches ?? wins + losses);
+
+            return {
+              ...player,
+              wins,
+              losses,
+              doublesWins: wins,
+              doublesLosses: losses,
+              doublesMatches,
+            };
+          })
+          .filter((p) => p.wins + p.losses > 0);
+
+        return sortPlayersByRank(doublesPlayers);
+      }
     }
-    
-    // For week/month, calculate temporary stats with match type filter
-    let matches = period === 'week' ? weekMatches : monthMatches;
-    
-    // Apply match type filter
+
+    // ==========================================
+    // PERIOD RANKINGS (WEEK / MONTH)
+    // ==========================================
+    let periodMatches = period === 'week' ? weekMatches : monthMatches;
+
     if (matchType !== 'all') {
-      matches = matches.filter(m => m.type === matchType);
+      periodMatches = periodMatches.filter((m) => m.type === matchType);
     }
-    
+
     const periodStats = new Map<string, { wins: number; losses: number }>();
-    
-    matches.forEach(match => {
-      match.players.forEach(playerId => {
+
+    periodMatches.forEach((match) => {
+      match.players.forEach((playerId) => {
         if (!periodStats.has(playerId)) {
           periodStats.set(playerId, { wins: 0, losses: 0 });
         }
-        
         const stats = periodStats.get(playerId)!;
-        if (match.winner.includes(playerId)) {
+        if (match.winner && match.winner.includes(playerId)) {
           stats.wins++;
         } else {
           stats.losses++;
         }
       });
     });
-    
-    // Create temporary player objects with period stats
+
     const periodPlayers = playersWithMatches
-      .map(player => {
+      .map((player) => {
         const stats = periodStats.get(player.id) || { wins: 0, losses: 0 };
         return {
           ...player,
@@ -94,13 +129,13 @@ export function useRankings(players: Player[], period: RankingPeriod, matchType:
           losses: stats.losses,
         };
       })
-      .filter(p => p.wins + p.losses > 0);
-    
+      .filter((p) => p.wins + p.losses > 0);
+
     return sortPlayersByRank(periodPlayers);
   }, [players, period, matchType, allMatches, weekMatches, monthMatches]);
 
   const spotlight = useMemo((): Spotlight => {
-    if (players.length === 0) {
+    if (players.length === 0 || rankedPlayers.length === 0) {
       return {
         courtKing: null,
         longestStreak: null,
@@ -109,56 +144,57 @@ export function useRankings(players: Player[], period: RankingPeriod, matchType:
       };
     }
 
-    const playersWithMatches = players.filter(p => getTotalMatches(p) > 0);
-    
-    // Court King - highest ranked player
+    // Court King - highest ranked player in current filtered view
     const courtKing = rankedPlayers[0] || null;
-    
-    // Longest Streak - highest absolute streak (based on filtered matches)
-    const longestStreak = [...playersWithMatches]
-      .sort((a, b) => Math.abs(b.streak) - Math.abs(a.streak))
-      .filter(p => p.streak !== 0)[0] || null;
-    
+
+    // Longest Streak
+    const longestStreak =
+      [...rankedPlayers]
+        .sort((a, b) => Math.abs(b.streak) - Math.abs(a.streak))
+        .filter((p) => p.streak !== 0)[0] || null;
+
     // Filter week matches by match type
     let filteredWeekMatches = weekMatches;
     if (matchType !== 'all') {
-      filteredWeekMatches = weekMatches.filter(m => m.type === matchType);
+      filteredWeekMatches = weekMatches.filter((m) => m.type === matchType);
     }
-    
+
     // Most Active This Week
     const weekActivity = new Map<string, number>();
-    filteredWeekMatches.forEach(match => {
-      match.players.forEach(playerId => {
+    filteredWeekMatches.forEach((match) => {
+      match.players.forEach((playerId) => {
         weekActivity.set(playerId, (weekActivity.get(playerId) || 0) + 1);
       });
     });
-    
+
     let mostActive = null;
     let maxActivity = 0;
     weekActivity.forEach((count, playerId) => {
       if (count > maxActivity) {
         maxActivity = count;
-        mostActive = players.find(p => p.id === playerId) || null;
+        mostActive = players.find((p) => p.id === playerId) || null;
       }
     });
-    
+
     // Weekly Champion - most wins this week
     const weekWins = new Map<string, number>();
-    filteredWeekMatches.forEach(match => {
-      match.winner.forEach(winnerId => {
-        weekWins.set(winnerId, (weekWins.get(winnerId) || 0) + 1);
-      });
+    filteredWeekMatches.forEach((match) => {
+      if (match.winner) {
+        match.winner.forEach((winnerId) => {
+          weekWins.set(winnerId, (weekWins.get(winnerId) || 0) + 1);
+        });
+      }
     });
-    
+
     let weeklyChampion = null;
     let maxWins = 0;
     weekWins.forEach((wins, playerId) => {
       if (wins > maxWins) {
         maxWins = wins;
-        weeklyChampion = players.find(p => p.id === playerId) || null;
+        weeklyChampion = players.find((p) => p.id === playerId) || null;
       }
     });
-    
+
     return {
       courtKing,
       longestStreak,

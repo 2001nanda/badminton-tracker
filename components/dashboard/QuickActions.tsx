@@ -3,7 +3,7 @@
 import { memo } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Users, Trophy, History } from 'lucide-react';
+import { PlusCircle, Swords, Trophy, Users } from 'lucide-react';
 
 export const QuickActions = memo(function QuickActions() {
   const actions = [
@@ -15,11 +15,11 @@ export const QuickActions = memo(function QuickActions() {
       hoverGradient: 'hover:from-emerald-600 hover:to-emerald-700',
     },
     {
-      href: '/players',
-      icon: Users,
-      label: 'Players',
-      gradient: 'from-blue-500 to-blue-600',
-      hoverGradient: 'hover:from-blue-600 hover:to-blue-700',
+      href: '/combinations',
+      icon: Swords,
+      label: 'Duos / H2H',
+      gradient: 'from-purple-500 to-purple-600',
+      hoverGradient: 'hover:from-purple-600 hover:to-purple-700',
     },
     {
       href: '/rankings',
@@ -29,26 +29,26 @@ export const QuickActions = memo(function QuickActions() {
       hoverGradient: 'hover:from-yellow-600 hover:to-yellow-700',
     },
     {
-      href: '/history',
-      icon: History,
-      label: 'History',
-      gradient: 'from-purple-500 to-purple-600',
-      hoverGradient: 'hover:from-purple-600 hover:to-purple-700',
+      href: '/players',
+      icon: Users,
+      label: 'Players',
+      gradient: 'from-blue-500 to-blue-600',
+      hoverGradient: 'hover:from-blue-600 hover:to-blue-700',
     },
   ];
 
   return (
-    <div className="grid grid-cols-2 gap-3">
+    <div className="grid grid-cols-2 gap-3 mb-6">
       {actions.map((action) => {
         const Icon = action.icon;
         return (
           <Link key={action.href} href={action.href}>
             <Button
-              className={`w-full h-20 bg-gradient-to-r ${action.gradient} ${action.hoverGradient} shadow-lg transition-all hover:scale-105`}
+              className={`w-full h-16 bg-gradient-to-r ${action.gradient} ${action.hoverGradient} rounded-2xl shadow-md transition-all hover:scale-105 border border-white/10`}
             >
-              <div className="flex flex-col items-center space-y-1">
-                <Icon className="w-6 h-6" />
-                <span className="text-sm font-semibold">{action.label}</span>
+              <div className="flex items-center space-x-2.5">
+                <Icon className="w-5 h-5 text-white" />
+                <span className="text-sm font-bold text-white">{action.label}</span>
               </div>
             </Button>
           </Link>

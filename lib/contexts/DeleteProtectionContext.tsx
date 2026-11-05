@@ -26,18 +26,19 @@ export function DeleteProtectionProvider({ children }: { children: ReactNode }) 
   }, []);
 
   // Automatic cleanup of old matches (> 14 days) on app mount
+  // Prunes detailed match documents only, preserving lifetime player and partnership statistics.
   useEffect(() => {
     const runAutoCleanup = async () => {
       try {
         const lastRun = localStorage.getItem('last_match_cleanup_run');
         const now = Date.now();
-        
+
         // Throttle: only run once every 24 hours (86,400,000 milliseconds)
         if (lastRun && now - parseInt(lastRun, 10) < 24 * 60 * 60 * 1000) {
           console.log('🧹 Auto-cleanup throttled (already checked in the last 24h).');
           return;
         }
-        
+
         const result = await cleanupOldMatches();
         if (result.success) {
           localStorage.setItem('last_match_cleanup_run', now.toString());
@@ -47,7 +48,7 @@ export function DeleteProtectionProvider({ children }: { children: ReactNode }) 
       }
     };
 
-    // Wait a brief delay after mounting to let initial queries finish
+    // Wait a brief delay after mounting to let initial queries settle
     const delayId = setTimeout(runAutoCleanup, 3000);
     return () => clearTimeout(delayId);
   }, []);

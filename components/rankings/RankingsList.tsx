@@ -9,11 +9,13 @@ import { EmptyRankings } from './EmptyRankings';
 interface RankingsListProps {
   players: Player[];
   loading: boolean;
+  matchType?: 'all' | 'singles' | 'doubles';
 }
 
 export const RankingsList = memo(function RankingsList({
   players,
   loading,
+  matchType = 'all',
 }: RankingsListProps) {
   if (loading) {
     return (
@@ -26,17 +28,13 @@ export const RankingsList = memo(function RankingsList({
   }
 
   if (players.length === 0) {
-    return <EmptyRankings />;
+    return <EmptyRankings matchType={matchType} />;
   }
 
   return (
     <div className="space-y-3">
       {players.map((player, index) => (
-        <RankingCard
-          key={player.id}
-          player={player}
-          rank={index + 1}
-        />
+        <RankingCard key={player.id} player={player} rank={index + 1} />
       ))}
     </div>
   );

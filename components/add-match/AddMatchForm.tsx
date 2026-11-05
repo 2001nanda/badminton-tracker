@@ -5,15 +5,15 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
-import { Loader2, Save, Plus } from 'lucide-react';
+import { Loader2, Save, Swords, Zap } from 'lucide-react';
 import { toast } from 'sonner';
 import { matchFormSchema, MatchFormData } from '@/lib/schemas/matchSchema';
 import { MatchTypeSelector } from './MatchTypeSelector';
-import { PlayerSelector } from './PlayerSelector';
 import { DoublesPlayerSelector } from './DoublesPlayerSelector';
 import { SinglesPlayerSelector } from './SinglesPlayerSelector';
 import { ScoreInput } from './ScoreInput';
 import { WinnerPreview } from './WinnerPreview';
+import { FullscreenScoreboard } from './FullscreenScoreboard';
 import { useOptimizedPlayers } from '@/lib/hooks/useOptimizedPlayers';
 import { addMatch } from '@/lib/actions/matchActions';
 import { determineWinner, getWinnerNames, hasValidScore } from '@/lib/utils/matchUtils';
@@ -23,7 +23,7 @@ export function AddMatchForm() {
   const router = useRouter();
   const { players, playerMap, loading: playersLoading } = useOptimizedPlayers();
   const [submitting, setSubmitting] = useState(false);
-  const [visibleSets, setVisibleSets] = useState(1); // Start with only Set 1 visible
+  const [scoreboardOpen, setScoreboardOpen] = useState(false);
 
   const {
     watch,
@@ -38,110 +38,131 @@ export function AddMatchForm() {
       playerB: '',
       playerC: '',
       playerD: '',
-      set1TeamA: 0,
-      set1TeamB: 0,
-      set2TeamA: 0,
-      set2TeamB: 0,
-      set3TeamA: 0,
-      set3TeamB: 0,
+      teamAScore: 0,
+      teamBScore: 0,
     },
   });
 
   const formValues = watch();
 
+  // Selected Team Players for Scoreboard and Labels
+  const teamAPlayers = useMemo(() => {
+    if (formValues.type === 'singles') {
+      const p = playerMap.get(formValues.playerA);
+      return p ? [p] : [];
+    }
+    const p1 = playerMap.get(formValues.playerA);
+    const p2 = playerMap.get(formValues.playerC || '');
+    return [p1, p2].filter(Boolean) as any[];
+  }, [formValues.type, formValues.playerA, formValues.playerC, playerMap]);
+
+  const teamBPlayers = useMemo(() => {
+    if (formValues.type === 'singles') {
+      const p = playerMap.get(formValues.playerB);
+      return p ? [p] : [];
+    }
+    const p1 = playerMap.get(formValues.playerB);
+    const p2 = playerMap.get(formValues.playerD || '');
+    return [p1, p2].filter(Boolean) as any[];
+  }, [formValues.type, formValues.playerB, formValues.playerD, playerMap]);
+
+  const hasAllRequiredPlayers = useMemo(() => {
+    if (formValues.type === 'singles') {
+      return Boolean(formValues.playerA && formValues.playerB);
+    }
+    return Boolean(
+      formValues.playerA && formValues.playerB && formValues.playerC && formValues.playerD
+    );
+  }, [formValues]);
+
   // Calculate winner preview
   const winnerPreview = useMemo(() => {
     if (!hasValidScore(formValues)) return { show: false, names: [] };
-    
+
     const winnerIds = determineWinner(formValues);
-    const playerNameMap = new Map(
-      players.map(p => [p.id, p.name])
-    );
+    const playerNameMap = new Map(players.map((p) => [p.id, p.name]));
     const names = getWinnerNames(winnerIds, playerNameMap);
-    
+
     return { show: true, names };
   }, [formValues, players]);
 
   const onSubmit = async (data: MatchFormData) => {
     setSubmitting(true);
-    
+
     try {
-      // Prepare match data
-      const playerIds = data.type === 'singles'
-        ? [data.playerA, data.playerB]
-        : [data.playerA, data.playerC!, data.playerB, data.playerD!];
+      const playerIds =
+        data.type === 'singles'
+          ? [data.playerA, data.playerB]
+          : [data.playerA, data.playerC!, data.playerB, data.playerD!];
 
       const winnerIds = determineWinner(data);
 
-      const score: any = {
-        set1: { teamA: data.set1TeamA, teamB: data.set1TeamB },
-        set2: { teamA: data.set2TeamA, teamB: data.set2TeamB },
-      };
-
-      if (data.set3TeamA && data.set3TeamB && (data.set3TeamA > 0 || data.set3TeamB > 0)) {
-        score.set3 = { teamA: data.set3TeamA, teamB: data.set3TeamB };
-      }
-
-      // Save match
+      // Save as one independent match record (Single Game Model)
       const result = await addMatch({
         type: data.type,
         players: playerIds,
-        score,
+        score: {
+          set1: { teamA: data.teamAScore, teamB: data.teamBScore },
+        },
         winner: winnerIds,
       });
 
       if (result.success) {
-        // Cache matchup in localStorage for quick selection in the future
+        // Cache matchup in localStorage for fast selection
         if (data.type === 'singles') {
           const teamA = [data.playerA];
           const teamB = [data.playerB];
-          
+
           try {
             const storedMatchups = localStorage.getItem('badminton:recent-singles-matchups');
             const recentMatchups = storedMatchups ? JSON.parse(storedMatchups) : [];
             const newMatchup = { teamA, teamB };
-            
-            // Remove duplicates
+
             const filteredMatchups = recentMatchups.filter((m: any) => {
-              const matchesExactly = 
-                (m.teamA[0] === teamA[0] && m.teamB[0] === teamB[0]);
-              return !matchesExactly;
+              return !(m.teamA[0] === teamA[0] && m.teamB[0] === teamB[0]);
             });
-            
+
             filteredMatchups.unshift(newMatchup);
-            localStorage.setItem('badminton:recent-singles-matchups', JSON.stringify(filteredMatchups.slice(0, 5)));
+            localStorage.setItem(
+              'badminton:recent-singles-matchups',
+              JSON.stringify(filteredMatchups.slice(0, 5))
+            );
           } catch (e) {
             console.error('Failed to update recent singles matchups in localStorage', e);
           }
         } else if (data.type === 'doubles') {
           const teamA = [data.playerA, data.playerC!];
           const teamB = [data.playerB, data.playerD!];
-          
+
           try {
-            // Update recent matchups
             const storedMatchups = localStorage.getItem('badminton:recent-matchups');
             const recentMatchups = storedMatchups ? JSON.parse(storedMatchups) : [];
             const newMatchup = { teamA, teamB };
-            
-            // Remove duplicates
-            const filteredMatchups = recentMatchups.filter((m: any) => {
-              const matchesExactly = 
-                (m.teamA[0] === teamA[0] && m.teamA[1] === teamA[1] && m.teamB[0] === teamB[0] && m.teamB[1] === teamB[1]);
-              return !matchesExactly;
-            });
-            
-            filteredMatchups.unshift(newMatchup);
-            localStorage.setItem('badminton:recent-matchups', JSON.stringify(filteredMatchups.slice(0, 5)));
 
-            // Update recent pairs (individual teams)
+            const filteredMatchups = recentMatchups.filter((m: any) => {
+              return !(
+                m.teamA[0] === teamA[0] &&
+                m.teamA[1] === teamA[1] &&
+                m.teamB[0] === teamB[0] &&
+                m.teamB[1] === teamB[1]
+              );
+            });
+
+            filteredMatchups.unshift(newMatchup);
+            localStorage.setItem(
+              'badminton:recent-matchups',
+              JSON.stringify(filteredMatchups.slice(0, 5))
+            );
+
+            // Update recent pairs
             const storedPairs = localStorage.getItem('badminton:recent-pairs');
             let recentPairs = storedPairs ? JSON.parse(storedPairs) : [];
-            
-            [teamA, teamB].forEach(pair => {
-              // Remove duplicates of this pair (order insensitive)
-              recentPairs = recentPairs.filter((p: string[]) => 
-                !(p[0] === pair[0] && p[1] === pair[1]) && 
-                !(p[0] === pair[1] && p[1] === pair[0])
+
+            [teamA, teamB].forEach((pair) => {
+              recentPairs = recentPairs.filter(
+                (p: string[]) =>
+                  !(p[0] === pair[0] && p[1] === pair[1]) &&
+                  !(p[0] === pair[1] && p[1] === pair[0])
               );
               recentPairs.unshift(pair);
             });
@@ -151,8 +172,8 @@ export function AddMatchForm() {
           }
         }
 
-        toast.success('Match saved successfully! 🏸', {
-          description: 'Stats updated for all players',
+        toast.success('Game saved successfully! 🏸', {
+          description: 'Lifetime player and partnership stats updated',
         });
         router.push('/');
       } else {
@@ -168,6 +189,33 @@ export function AddMatchForm() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  // Bridge from court-side live scoreboard
+  const handleScoreboardSave = async (scores: { teamAScore: number; teamBScore: number }) => {
+    setValue('teamAScore', scores.teamAScore);
+    setValue('teamBScore', scores.teamBScore);
+
+    const payload: MatchFormData = {
+      ...formValues,
+      teamAScore: scores.teamAScore,
+      teamBScore: scores.teamBScore,
+    };
+
+    await onSubmit(payload);
+  };
+
+  const handleLaunchScoreboard = () => {
+    if (!hasAllRequiredPlayers) {
+      toast.error('Please select players first', {
+        description:
+          formValues.type === 'singles'
+            ? 'Select 2 players for singles'
+            : 'Select 4 players for doubles',
+      });
+      return;
+    }
+    setScoreboardOpen(true);
   };
 
   if (playersLoading) {
@@ -198,177 +246,157 @@ export function AddMatchForm() {
     );
   }
 
-  const selectedPlayers = [
-    formValues.playerA,
-    formValues.playerB,
-    formValues.playerC,
-    formValues.playerD,
-  ].filter((id): id is string => Boolean(id));
-
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 pb-32 md:pb-8">
-      {/* Match Type */}
-      <div className="glass-card rounded-2xl p-6">
-        <h2 className="text-base font-semibold text-white mb-4">Match Type</h2>
-        <MatchTypeSelector
-          value={formValues.type}
-          onChange={(value) => {
-            setValue('type', value);
-            // Reset players when switching type
-            if (value === 'singles') {
-              setValue('playerC', '');
-              setValue('playerD', '');
-            }
-          }}
-        />
-      </div>
-
-      {/* Players */}
-      <div className="glass-card rounded-2xl p-6">
-        <h2 className="text-base font-semibold text-white mb-5">Players</h2>
-        
-        {formValues.type === 'singles' ? (
-          <SinglesPlayerSelector
-            players={players}
-            selected={[
-              formValues.playerA,
-              formValues.playerB,
-            ]}
-            onChange={(selected) => {
-              setValue('playerA', selected[0] || '');
-              setValue('playerB', selected[1] || '');
+    <>
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 pb-32 md:pb-8">
+        {/* Match Type */}
+        <div className="glass-card rounded-2xl p-6">
+          <h2 className="text-base font-semibold text-white mb-4">Match Type</h2>
+          <MatchTypeSelector
+            value={formValues.type}
+            onChange={(value) => {
+              setValue('type', value);
+              if (value === 'singles') {
+                setValue('playerC', '');
+                setValue('playerD', '');
+              }
             }}
-            errors={errors}
           />
-        ) : (
-          <DoublesPlayerSelector
-            players={players}
-            selected={[
-              formValues.playerA,
-              formValues.playerC || '',
-              formValues.playerB,
-              formValues.playerD || '',
-            ]}
-            onChange={(selected) => {
-              setValue('playerA', selected[0] || '');
-              setValue('playerC', selected[1] || '');
-              setValue('playerB', selected[2] || '');
-              setValue('playerD', selected[3] || '');
-            }}
-            errors={errors}
-          />
-        )}
-      </div>
+        </div>
 
-      {/* Scores */}
-      <div className="glass-card rounded-2xl p-6">
-        <h2 className="text-base font-semibold text-white mb-5">Scores</h2>
-        
-        <div className="space-y-4">
-          {/* Set 1 - Always visible */}
+        {/* Players */}
+        <div className="glass-card rounded-2xl p-6">
+          <h2 className="text-base font-semibold text-white mb-5">Players</h2>
+
+          {formValues.type === 'singles' ? (
+            <SinglesPlayerSelector
+              players={players}
+              selected={[formValues.playerA, formValues.playerB]}
+              onChange={(selected) => {
+                setValue('playerA', selected[0] || '');
+                setValue('playerB', selected[1] || '');
+              }}
+              errors={errors}
+            />
+          ) : (
+            <DoublesPlayerSelector
+              players={players}
+              selected={[
+                formValues.playerA,
+                formValues.playerC || '',
+                formValues.playerB,
+                formValues.playerD || '',
+              ]}
+              onChange={(selected) => {
+                setValue('playerA', selected[0] || '');
+                setValue('playerC', selected[1] || '');
+                setValue('playerB', selected[2] || '');
+                setValue('playerD', selected[3] || '');
+              }}
+              errors={errors}
+            />
+          )}
+        </div>
+
+        {/* Live Scoreboard Banner / Quick Launch */}
+        <div className="glass-card rounded-2xl p-5 border border-emerald-500/30 bg-gradient-to-r from-emerald-950/40 via-black to-emerald-950/20 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-white shadow-lg shadow-emerald-500/30">
+              <Zap className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="text-base font-extrabold text-white flex items-center gap-2">
+                Court-Side Live Scoreboard
+                <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-bold px-2 py-0.5 rounded-full border border-emerald-500/30">
+                  SINGLE GAME
+                </span>
+              </h3>
+              <p className="text-xs text-slate-400">
+                Large Red/Green split touch screen with undo, haptics and 21-point rules
+              </p>
+            </div>
+          </div>
+
+          <Button
+            type="button"
+            onClick={handleLaunchScoreboard}
+            className="w-full sm:w-auto h-11 px-5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 font-bold rounded-xl shadow-md shadow-emerald-500/20 text-white shrink-0"
+          >
+            <Swords className="w-4 h-4 mr-2" />
+            Launch Live Scoreboard
+          </Button>
+        </div>
+
+        {/* Single Game Score Entry */}
+        <div className="glass-card rounded-2xl p-6">
+          <div className="flex items-center justify-between mb-5">
+            <div>
+              <h2 className="text-base font-semibold text-white">Game Score</h2>
+              <p className="text-xs text-slate-400">1 Game Played = 1 Match Record</p>
+            </div>
+            <span className="text-xs text-emerald-400 font-medium">Badminton 21 Pts</span>
+          </div>
+
           <ScoreInput
-            setNumber={1}
-            teamAScore={formValues.set1TeamA}
-            teamBScore={formValues.set1TeamB}
-            onTeamAChange={(value) => setValue('set1TeamA', value)}
-            onTeamBChange={(value) => setValue('set1TeamB', value)}
+            teamAScore={formValues.teamAScore}
+            teamBScore={formValues.teamBScore}
+            onTeamAChange={(value) => setValue('teamAScore', value)}
+            onTeamBChange={(value) => setValue('teamBScore', value)}
             teamAPlayers={
               formValues.type === 'singles'
-                ? [playerMap.get(formValues.playerA)?.name].filter(Boolean) as string[]
-                : [playerMap.get(formValues.playerA)?.name, playerMap.get(formValues.playerC || '')?.name].filter(Boolean) as string[]
+                ? ([playerMap.get(formValues.playerA)?.name].filter(Boolean) as string[])
+                : ([
+                    playerMap.get(formValues.playerA)?.name,
+                    playerMap.get(formValues.playerC || '')?.name,
+                  ].filter(Boolean) as string[])
             }
             teamBPlayers={
               formValues.type === 'singles'
-                ? [playerMap.get(formValues.playerB)?.name].filter(Boolean) as string[]
-                : [playerMap.get(formValues.playerB)?.name, playerMap.get(formValues.playerD || '')?.name].filter(Boolean) as string[]
+                ? ([playerMap.get(formValues.playerB)?.name].filter(Boolean) as string[])
+                : ([
+                    playerMap.get(formValues.playerB)?.name,
+                    playerMap.get(formValues.playerD || '')?.name,
+                  ].filter(Boolean) as string[])
             }
           />
-          
-          {/* Set 2 - Show if visibleSets >= 2 */}
-          {visibleSets >= 2 && (
-            <ScoreInput
-              setNumber={2}
-              teamAScore={formValues.set2TeamA}
-              teamBScore={formValues.set2TeamB}
-              onTeamAChange={(value) => setValue('set2TeamA', value)}
-              onTeamBChange={(value) => setValue('set2TeamB', value)}
-              teamAPlayers={
-                formValues.type === 'singles'
-                  ? [playerMap.get(formValues.playerA)?.name].filter(Boolean) as string[]
-                  : [playerMap.get(formValues.playerA)?.name, playerMap.get(formValues.playerC || '')?.name].filter(Boolean) as string[]
-              }
-              teamBPlayers={
-                formValues.type === 'singles'
-                  ? [playerMap.get(formValues.playerB)?.name].filter(Boolean) as string[]
-                  : [playerMap.get(formValues.playerB)?.name, playerMap.get(formValues.playerD || '')?.name].filter(Boolean) as string[]
-              }
-            />
-          )}
-          
-          {/* Set 3 - Show if visibleSets >= 3 */}
-          {visibleSets >= 3 && (
-            <ScoreInput
-              setNumber={3}
-              teamAScore={formValues.set3TeamA || 0}
-              teamBScore={formValues.set3TeamB || 0}
-              onTeamAChange={(value) => setValue('set3TeamA', value)}
-              onTeamBChange={(value) => setValue('set3TeamB', value)}
-              optional
-              teamAPlayers={
-                formValues.type === 'singles'
-                  ? [playerMap.get(formValues.playerA)?.name].filter(Boolean) as string[]
-                  : [playerMap.get(formValues.playerA)?.name, playerMap.get(formValues.playerC || '')?.name].filter(Boolean) as string[]
-              }
-              teamBPlayers={
-                formValues.type === 'singles'
-                  ? [playerMap.get(formValues.playerB)?.name].filter(Boolean) as string[]
-                  : [playerMap.get(formValues.playerB)?.name, playerMap.get(formValues.playerD || '')?.name].filter(Boolean) as string[]
-              }
-            />
-          )}
+        </div>
 
-          {/* Add Another Set Button */}
-          {visibleSets < 3 && (
-            <button
-              type="button"
-              onClick={() => setVisibleSets(prev => Math.min(prev + 1, 3))}
-              className="w-full py-3 rounded-xl border-2 border-dashed border-white/10 hover:border-emerald-500/50 hover:bg-emerald-500/5 text-slate-400 hover:text-emerald-400 font-medium text-sm transition-all flex items-center justify-center gap-2"
+        {/* Winner Preview */}
+        <WinnerPreview winnerNames={winnerPreview.names} show={winnerPreview.show} />
+
+        {/* Submit Button */}
+        <div className="md:relative md:p-0 md:bg-none">
+          <div className="fixed bottom-16 left-0 right-0 p-4 bg-gradient-to-t from-[#0B0F14] via-[#0B0F14] to-transparent md:relative md:bottom-0 md:p-0 md:bg-none z-40">
+            <Button
+              type="submit"
+              disabled={submitting || !hasValidScore(formValues)}
+              className="w-full h-14 text-base font-semibold bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 shadow-lg shadow-emerald-500/30 transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
             >
-              <Plus className="w-4 h-4" />
-              Add Set {visibleSets + 1}
-            </button>
-          )}
+              {submitting ? (
+                <>
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  Saving Match...
+                </>
+              ) : (
+                <>
+                  <Save className="w-5 h-5 mr-2" />
+                  Save Game 🏸
+                </>
+              )}
+            </Button>
+          </div>
         </div>
-      </div>
+      </form>
 
-      {/* Winner Preview */}
-      <WinnerPreview
-        winnerNames={winnerPreview.names}
-        show={winnerPreview.show}
+      {/* Fullscreen Scoreboard Modal */}
+      <FullscreenScoreboard
+        isOpen={scoreboardOpen}
+        onClose={() => setScoreboardOpen(false)}
+        matchType={formValues.type}
+        teamAPlayers={teamAPlayers}
+        teamBPlayers={teamBPlayers}
+        onSaveMatch={handleScoreboardSave}
       />
-
-      {/* Submit Button - Sticky on mobile */}
-      <div className="md:relative md:p-0 md:bg-none">
-        <div className="fixed bottom-16 left-0 right-0 p-4 bg-gradient-to-t from-[#0B0F14] via-[#0B0F14] to-transparent md:relative md:bottom-0 md:p-0 md:bg-none z-40">
-          <Button
-            type="submit"
-            disabled={submitting || !hasValidScore(formValues)}
-            className="w-full h-14 text-base font-semibold bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 shadow-lg shadow-emerald-500/30 transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-          >
-            {submitting ? (
-              <>
-                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                Saving Match...
-              </>
-            ) : (
-              <>
-                <Save className="w-5 h-5 mr-2" />
-                Save Match 🏸
-              </>
-            )}
-          </Button>
-        </div>
-      </div>
-    </form>
+    </>
   );
 }

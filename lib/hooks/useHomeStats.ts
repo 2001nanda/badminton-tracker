@@ -1,19 +1,25 @@
 import { useMemo } from 'react';
 import { useOptimizedPlayers } from './useOptimizedPlayers';
-import { useMatchesThisWeek } from './useMatches';
+import { useMatchesThisWeek, useMatches } from './useMatches';
 import { HomeStats } from '@/lib/types';
+import { calculateAllPartnershipStats } from '@/lib/utils/combinationStats';
 
 export function useHomeStats(): { stats: HomeStats; loading: boolean } {
-  const { players, loading: playersLoading } = useOptimizedPlayers();
-  const { matches, loading: matchesLoading } = useMatchesThisWeek();
+  const { players, playerMap, loading: playersLoading } = useOptimizedPlayers();
+  const { matches: weekMatches, loading: weekMatchesLoading } = useMatchesThisWeek();
+  const { matches: allMatches, loading: allMatchesLoading } = useMatches();
+
+  const loading = playersLoading || weekMatchesLoading || allMatchesLoading;
 
   const stats = useMemo(() => {
-    if (playersLoading || matchesLoading || players.length === 0) {
+    if (loading || players.length === 0) {
       return {
         courtKing: null,
         currentStreak: null,
         mostWinsThisWeek: null,
         mostActive: null,
+        bestDuo: null,
+        mostPlayedDuo: null,
       };
     }
 
@@ -25,7 +31,7 @@ export function useHomeStats(): { stats: HomeStats; loading: boolean } {
 
     // Most Wins This Week
     const winsThisWeek = new Map<string, number>();
-    matches.forEach((match) => {
+    weekMatches.forEach((match) => {
       match.winner.forEach((winnerId) => {
         winsThisWeek.set(winnerId, (winsThisWeek.get(winnerId) || 0) + 1);
       });
@@ -36,7 +42,7 @@ export function useHomeStats(): { stats: HomeStats; loading: boolean } {
     winsThisWeek.forEach((wins, playerId) => {
       if (wins > maxWins) {
         maxWins = wins;
-        const player = players.find((p) => p.id === playerId);
+        const player = playerMap.get(playerId);
         if (player) {
           mostWinsThisWeek = { id: player.id, name: player.name, wins };
         }
@@ -45,7 +51,7 @@ export function useHomeStats(): { stats: HomeStats; loading: boolean } {
 
     // Most Active Player - player with most matches this week
     const matchCounts = new Map<string, number>();
-    matches.forEach((match) => {
+    weekMatches.forEach((match) => {
       match.players.forEach((playerId) => {
         matchCounts.set(playerId, (matchCounts.get(playerId) || 0) + 1);
       });
@@ -56,12 +62,26 @@ export function useHomeStats(): { stats: HomeStats; loading: boolean } {
     matchCounts.forEach((count, playerId) => {
       if (count > maxMatches) {
         maxMatches = count;
-        const player = players.find((p) => p.id === playerId);
+        const player = playerMap.get(playerId);
         if (player) {
           mostActive = { id: player.id, name: player.name, matches: count };
         }
       }
     });
+
+    // Duo highlights from all doubles matches
+    const allPartnerships = calculateAllPartnershipStats(allMatches, playerMap);
+    const qualifiedDuos = allPartnerships.filter((d) => d.isQualified);
+    const topDuo = qualifiedDuos[0] || allPartnerships[0] || null;
+    const mostPlayedDuoRecord = [...allPartnerships].sort((a, b) => b.matchesPlayed - a.matchesPlayed)[0] || null;
+
+    const bestDuo = topDuo
+      ? { id: topDuo.id, name: topDuo.duoName, wins: topDuo.wins, winPercentage: topDuo.winPercentage }
+      : null;
+
+    const mostPlayedDuo = mostPlayedDuoRecord
+      ? { id: mostPlayedDuoRecord.id, name: mostPlayedDuoRecord.duoName, matches: mostPlayedDuoRecord.matchesPlayed }
+      : null;
 
     return {
       courtKing: courtKing
@@ -72,8 +92,10 @@ export function useHomeStats(): { stats: HomeStats; loading: boolean } {
         : null,
       mostWinsThisWeek,
       mostActive,
+      bestDuo,
+      mostPlayedDuo,
     };
-  }, [players, matches, playersLoading, matchesLoading]);
+  }, [players, playerMap, weekMatches, allMatches, loading]);
 
-  return { stats, loading: playersLoading || matchesLoading };
+  return { stats, loading };
 }

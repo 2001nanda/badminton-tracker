@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, PlusCircle, Users, Trophy, History } from 'lucide-react';
+import { Home, PlusCircle, Users, Trophy, History, Swords } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DeleteModeToggle } from './DeleteModeToggle';
 
@@ -10,6 +10,7 @@ const navItems = [
   { href: '/', label: 'Home', icon: Home },
   { href: '/add-match', label: 'Add Match', icon: PlusCircle },
   { href: '/players', label: 'Players', icon: Users },
+  { href: '/combinations', label: 'Duos', icon: Swords },
   { href: '/rankings', label: 'Rankings', icon: Trophy },
   { href: '/history', label: 'History', icon: History },
 ];
@@ -38,7 +39,7 @@ export function DesktopNavigation() {
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    'flex items-center gap-2 px-4 py-2 rounded-lg transition-all font-medium text-sm',
+                    'flex items-center gap-2 px-3 py-2 rounded-lg transition-all font-medium text-sm',
                     isActive
                       ? 'bg-emerald-500/20 text-emerald-400'
                       : 'text-slate-400 hover:text-white hover:bg-white/5'
@@ -64,7 +65,7 @@ export function MobileNavigation() {
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 border-t border-white/10 bg-gray-900/95 backdrop-blur-xl z-50">
-      <div className="flex justify-around items-center h-16 px-2">
+      <div className="flex justify-around items-center h-16 px-1">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href;
@@ -73,18 +74,32 @@ export function MobileNavigation() {
               key={item.href}
               href={item.href}
               className={cn(
-                'flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-lg transition-all flex-1',
-                isActive
-                  ? 'text-emerald-400'
-                  : 'text-slate-400'
+                'flex flex-col items-center justify-center gap-1 px-2 py-1.5 rounded-lg transition-all flex-1 text-center',
+                isActive ? 'text-emerald-400' : 'text-slate-400'
               )}
             >
-              <Icon className={cn('w-5 h-5', isActive && 'scale-110')} />
-              <span className="text-xs font-medium">{item.label}</span>
+              <Icon className={cn('w-4 h-4', isActive && 'scale-110')} />
+              <span className="text-[10px] font-medium truncate max-w-[50px]">{item.label}</span>
             </Link>
           );
         })}
       </div>
     </nav>
+  );
+}
+
+export function MobileTopBar() {
+  return (
+    <header className="md:hidden flex items-center justify-between px-4 h-14 border-b border-white/10 bg-[#0B0F14]/95 backdrop-blur-md sticky top-0 z-40">
+      <Link href="/" className="flex items-center gap-2">
+        <div className="w-7 h-7 bg-gradient-to-br from-emerald-400 to-yellow-400 rounded-lg flex items-center justify-center shadow-md shadow-emerald-500/20">
+          <span className="text-base">🏸</span>
+        </div>
+        <span className="text-sm font-extrabold text-white tracking-tight">Badminton Tracker</span>
+      </Link>
+      <div className="flex items-center gap-1">
+        <DeleteModeToggle />
+      </div>
+    </header>
   );
 }

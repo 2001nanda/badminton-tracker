@@ -44,6 +44,8 @@ export interface AdditionalInsights {
   closestCompetition: string | null;
   highestWinRate: { name: string; rate: number } | null;
   totalDistinctPlayers: number;
+  highestScoringMatch?: { teams: string; score: string; totalPoints: number } | null;
+  biggestMarginMatch?: { winner: string; margin: number; score: string } | null;
 }
 
 export interface SinglesSummaryData {
@@ -226,7 +228,6 @@ export function computeDoublesSummary(
   const totalMatches = doublesMatches.length;
   const totalPlayers = individualStatsMap.size;
   const totalDuos = duoStatsMap.size;
-  // In doubles, total team wins equals the total number of match victories
   const totalTeamWins = totalMatches;
 
   // Build duo breakdown
@@ -255,23 +256,12 @@ export function computeDoublesSummary(
       };
     })
     .sort((a, b) => {
-      // 1. Primary: Win percentage descending
-      if (b.winPercentage !== a.winPercentage) {
-        return b.winPercentage - a.winPercentage;
-      }
-      // 2. Secondary: Total wins descending
-      if (b.wins !== a.wins) {
-        return b.wins - a.wins;
-      }
-      // 3. Tertiary: Matches played descending
-      if (b.played !== a.played) {
-        return b.played - a.played;
-      }
-      // 4. Deterministic tie-breaker: Alphabetical comparison of duoName
+      if (b.winPercentage !== a.winPercentage) return b.winPercentage - a.winPercentage;
+      if (b.wins !== a.wins) return b.wins - a.wins;
+      if (b.played !== a.played) return b.played - a.played;
       return a.duoName.localeCompare(b.duoName);
     });
 
-  // Assign ranks (1, 2, 3...)
   duoBreakdown.forEach((duo, idx) => {
     duo.rank = idx + 1;
   });
@@ -332,6 +322,22 @@ export function computeDoublesSummary(
     bestWinRateDuo,
   };
 
+  // Additional Insights for Doubles
+  const longestWinningStreak = computeLongestWinningStreak(doublesMatches, players);
+  const mostActiveDuo = duoBreakdown[0] ? { name: duoBreakdown[0].duoName, matches: duoBreakdown[0].played } : null;
+  const closestCompetition = computeClosestDuoCompetition(duoBreakdown);
+  const marginHighlights = computeMatchMarginHighlights(doublesMatches, playerMap);
+
+  const insights: AdditionalInsights = {
+    longestWinningStreak,
+    mostActivePlayer: mostActiveDuo,
+    closestCompetition,
+    highestWinRate: bestWinRateDuo ? { name: bestWinRateDuo.name, rate: bestWinRateDuo.percentage } : null,
+    totalDistinctPlayers: totalPlayers,
+    highestScoringMatch: marginHighlights.highestScoring,
+    biggestMarginMatch: marginHighlights.biggestMargin,
+  };
+
   return {
     mode: 'doubles',
     date,
@@ -343,6 +349,7 @@ export function computeDoublesSummary(
     topDuoPerformers,
     duoBreakdown,
     individualPlayerStats,
+    insights,
   };
 }
 
@@ -359,6 +366,7 @@ export function computeSinglesSummary(
   const date = format(dateToUse, 'MMMM d, yyyy');
   const dayOfWeek = format(dateToUse, 'EEEE');
 
+  const playerMap = new Map(players.map((p) => [p.id, p]));
   const playerStats = new Map<string, { wins: number; losses: number; matches: number }>();
 
   singlesMatches.forEach((match) => {
@@ -389,7 +397,7 @@ export function computeSinglesSummary(
   // Build player breakdown
   const playerBreakdown: PlayerSummary[] = Array.from(playerStats.entries())
     .map(([playerId, stats]) => {
-      const player = players.find((p) => p.id === playerId);
+      const player = playerMap.get(playerId);
       const totalPlayed = stats.wins + stats.losses;
       return {
         id: playerId,
@@ -455,12 +463,16 @@ export function computeSinglesSummary(
     ? { name: highestWinRateMin3.name, rate: highestWinRateMin3.winPercentage }
     : null;
 
+  const marginHighlights = computeMatchMarginHighlights(singlesMatches, playerMap);
+
   const insights: AdditionalInsights = {
     longestWinningStreak,
     mostActivePlayer,
     closestCompetition,
     highestWinRate,
     totalDistinctPlayers: totalPlayers,
+    highestScoringMatch: marginHighlights.highestScoring,
+    biggestMarginMatch: marginHighlights.biggestMargin,
   };
 
   return {
@@ -480,7 +492,6 @@ export function computeSinglesSummary(
 
 /**
  * Compute summary card data with automatic or preferred match-type separation.
- * Singles and Doubles matches are never combined into a single leaderboard.
  */
 export function computeSummaryCardData(
   matchesForDay: Match[],
@@ -499,9 +510,6 @@ export function computeSummaryCardData(
     return computeSinglesSummary(singlesMatches, players, targetDate);
   }
 
-  // Auto-detection:
-  // If there are doubles matches on this date, default to doubles summary.
-  // Otherwise default to singles summary.
   if (doublesMatches.length > 0) {
     return computeDoublesSummary(doublesMatches, players, targetDate);
   }
@@ -574,4 +582,74 @@ function computeClosestCompetition(breakdown: PlayerSummary[]): string | null {
 
   if (!pair) return null;
   return `${pair[0].name} vs ${pair[1].name} (${minDiff}% difference)`;
+}
+
+function computeClosestDuoCompetition(breakdown: DuoSummary[]): string | null {
+  if (breakdown.length < 2) return null;
+
+  let minDiff = Infinity;
+  let pair: [DuoSummary, DuoSummary] | null = null;
+
+  for (let i = 0; i < breakdown.length - 1; i++) {
+    for (let j = i + 1; j < breakdown.length; j++) {
+      const diff = Math.abs(breakdown[i].winPercentage - breakdown[j].winPercentage);
+      if (diff < minDiff) {
+        minDiff = diff;
+        pair = [breakdown[i], breakdown[j]];
+      }
+    }
+  }
+
+  if (!pair) return null;
+  return `${pair[0].duoName} vs ${pair[1].duoName} (${minDiff}% difference)`;
+}
+
+function computeMatchMarginHighlights(
+  matches: Match[],
+  playerMap: Map<string, Player>
+): {
+  highestScoring: { teams: string; score: string; totalPoints: number } | null;
+  biggestMargin: { winner: string; margin: number; score: string } | null;
+} {
+  let highestScoring: { teams: string; score: string; totalPoints: number } | null = null;
+  let biggestMargin: { winner: string; margin: number; score: string } | null = null;
+  let maxPoints = 0;
+  let maxMargin = 0;
+
+  matches.forEach((m) => {
+    const s1 = m.score?.set1;
+    const s2 = m.score?.set2;
+    const s3 = m.score?.set3;
+
+    const sets = [s1, s2, s3].filter((s): s is { teamA: number; teamB: number } => Boolean(s && (s.teamA > 0 || s.teamB > 0)));
+    if (sets.length === 0) return;
+
+    let matchPoints = 0;
+    let netMargin = 0;
+
+    sets.forEach((s) => {
+      matchPoints += s.teamA + s.teamB;
+      netMargin += Math.abs(s.teamA - s.teamB);
+    });
+
+    const getNames = (ids: string[]) => ids.map((id) => playerMap.get(id)?.name || 'Unknown').join(' + ');
+
+    const teamAName = m.type === 'singles' ? getNames([m.players[0]]) : getNames([m.players[0], m.players[1]]);
+    const teamBName = m.type === 'singles' ? getNames([m.players[1]]) : getNames([m.players[2], m.players[3]]);
+    const matchup = `${teamAName} vs ${teamBName}`;
+    const scoreStr = sets.map((s) => `${s.teamA}-${s.teamB}`).join(', ');
+
+    if (matchPoints > maxPoints) {
+      maxPoints = matchPoints;
+      highestScoring = { teams: matchup, score: scoreStr, totalPoints: matchPoints };
+    }
+
+    if (netMargin > maxMargin) {
+      maxMargin = netMargin;
+      const winnerName = m.winner.map((id) => playerMap.get(id)?.name || 'Unknown').join(' + ');
+      biggestMargin = { winner: winnerName, margin: netMargin, score: scoreStr };
+    }
+  });
+
+  return { highestScoring, biggestMargin };
 }

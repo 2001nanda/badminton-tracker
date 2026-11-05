@@ -6,6 +6,7 @@ import { MatchTimeline } from '@/components/history/MatchTimeline';
 import { SummaryCardModal, DatePickerModal } from '@/components/summary-card';
 import { useMatchHistory } from '@/lib/hooks/useMatchHistory';
 import { useOptimizedPlayers } from '@/lib/hooks/useOptimizedPlayers';
+import { usePartnerships } from '@/lib/hooks/usePartnerships';
 import { getMatchesByDate, getAvailableMatchDates } from '@/lib/utils/summaryCardUtils';
 import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
@@ -20,10 +21,13 @@ import { parseISO } from 'date-fns';
 
 export default function HistoryPage() {
   const { players } = useOptimizedPlayers();
+  const { partnerships } = usePartnerships();
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'singles' | 'doubles'>('all');
   const [filterPeriod, setFilterPeriod] = useState<'all' | 'week' | 'month'>('all');
   const [filterPlayer, setFilterPlayer] = useState<string>('all');
+  const [filterPartnership, setFilterPartnership] = useState<string>('all');
+  const [filterWinner, setFilterWinner] = useState<string>('all');
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedMatches, setSelectedMatches] = useState<Set<string>>(new Set());
   const [deleting, setDeleting] = useState(false);
@@ -42,6 +46,8 @@ export default function HistoryPage() {
     filterType,
     filterPeriod,
     filterPlayer,
+    filterPartnership,
+    filterWinner,
   });
 
   // Get all dates that have matches
@@ -192,7 +198,7 @@ export default function HistoryPage() {
             <Button
               onClick={handleGenerateSummaryCard}
               variant="outline"
-              className="border-emerald-500/30 hover:bg-emerald-500/10 text-emerald-400 hover:text-emerald-300"
+              className="border-emerald-500/30 hover:bg-emerald-500/10 text-emerald-400 hover:text-emerald-300 rounded-xl"
               disabled={loading}
             >
               <Image className="w-4 h-4 mr-2" />
@@ -201,7 +207,7 @@ export default function HistoryPage() {
             <Button
               onClick={handleEnableDeleteMode}
               variant="outline"
-              className="border-white/10 hover:bg-white/10 text-white"
+              className="border-white/10 hover:bg-white/10 text-white rounded-xl"
               disabled={matches.length === 0}
             >
               {isDeleteEnabled ? (
@@ -224,7 +230,7 @@ export default function HistoryPage() {
                 onClick={handleSelectAll}
                 variant="outline"
                 size="sm"
-                className="border-white/10 hover:bg-white/10 text-white"
+                className="border-white/10 hover:bg-white/10 text-white rounded-xl"
               >
                 {selectedMatches.size === matches.length ? 'Deselect All' : 'Select All'}
               </Button>
@@ -237,7 +243,7 @@ export default function HistoryPage() {
               <Button
                 onClick={handleDeleteSelected}
                 disabled={selectedMatches.size === 0 || deleting}
-                className="bg-red-500 hover:bg-red-600 text-white"
+                className="bg-red-500 hover:bg-red-600 text-white rounded-xl"
                 size="sm"
               >
                 <Trash2 className="w-4 h-4 mr-2" />
@@ -247,7 +253,7 @@ export default function HistoryPage() {
                 onClick={handleCancelSelection}
                 variant="outline"
                 size="sm"
-                className="border-white/10 hover:bg-white/10 text-white"
+                className="border-white/10 hover:bg-white/10 text-white rounded-xl"
               >
                 <X className="w-4 h-4 mr-2" />
                 Cancel
@@ -265,7 +271,12 @@ export default function HistoryPage() {
           onPeriodChange={setFilterPeriod}
           filterPlayer={filterPlayer}
           onPlayerChange={setFilterPlayer}
+          filterPartnership={filterPartnership}
+          onPartnershipChange={setFilterPartnership}
+          filterWinner={filterWinner}
+          onWinnerChange={setFilterWinner}
           players={players}
+          partnerships={partnerships}
         />
         
         <MatchTimeline

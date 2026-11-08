@@ -64,7 +64,7 @@ export function MobileNavigation() {
   const pathname = usePathname();
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 border-t border-white/10 bg-gray-900/95 backdrop-blur-xl z-50">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 border-t border-white/10 bg-gray-900/95 backdrop-blur-xl z-50 pb-[env(safe-area-inset-bottom,0px)]">
       <div className="flex justify-around items-center h-16 px-1">
         {navItems.map((item) => {
           const Icon = item.icon;
@@ -74,12 +74,12 @@ export function MobileNavigation() {
               key={item.href}
               href={item.href}
               className={cn(
-                'flex flex-col items-center justify-center gap-1 px-2 py-1.5 rounded-lg transition-all flex-1 text-center',
+                'flex flex-col items-center justify-center gap-1 px-1 py-1.5 rounded-lg transition-all flex-1 text-center min-w-0',
                 isActive ? 'text-emerald-400' : 'text-slate-400'
               )}
             >
               <Icon className={cn('w-4 h-4', isActive && 'scale-110')} />
-              <span className="text-[10px] font-medium truncate max-w-[50px]">{item.label}</span>
+              <span className="text-[10px] font-medium truncate max-w-full px-0.5">{item.label}</span>
             </Link>
           );
         })}
@@ -90,7 +90,7 @@ export function MobileNavigation() {
 
 export function MobileTopBar() {
   return (
-    <header className="md:hidden flex items-center justify-between px-4 h-14 border-b border-white/10 bg-[#0B0F14]/95 backdrop-blur-md sticky top-0 z-40">
+    <header className="md:hidden flex items-center justify-between px-4 h-14 border-b border-white/10 bg-[#0B0F14]/95 backdrop-blur-md sticky top-0 z-40 pt-[env(safe-area-inset-top,0px)]">
       <Link href="/" className="flex items-center gap-2">
         <div className="w-7 h-7 bg-gradient-to-br from-emerald-400 to-yellow-400 rounded-lg flex items-center justify-center shadow-md shadow-emerald-500/20">
           <span className="text-base">🏸</span>

@@ -170,7 +170,7 @@ export function SummaryCardModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto bg-[#111827] border-white/10 text-white">
+      <DialogContent className="w-[95vw] sm:max-w-2xl max-h-[92dvh] p-4 sm:p-6 overflow-y-auto bg-[#111827] border-white/10 text-white">
         <DialogHeader>
           <DialogTitle className="text-white flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -184,16 +184,16 @@ export function SummaryCardModal({
         </DialogHeader>
 
         {/* Controls Toolbar: Mode Switch (if mixed) + Format Switch */}
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-3 bg-white/[0.03] p-2.5 rounded-xl border border-white/10">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 mb-3 bg-white/[0.03] p-2.5 rounded-xl border border-white/10">
           {/* Mode Switch (Visible especially when session has mixed matches) */}
           {composition.isMixed ? (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between sm:justify-start gap-2">
               <span className="text-xs font-semibold text-slate-400">Mode:</span>
-              <div className="flex rounded-lg overflow-hidden border border-white/10">
+              <div className="flex flex-1 sm:flex-initial rounded-lg overflow-hidden border border-white/10">
                 <button
                   type="button"
                   onClick={() => setSummaryMode('doubles')}
-                  className={`px-3 py-1.5 text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                  className={`flex-1 sm:flex-initial px-3 py-1.5 text-xs font-semibold transition-all flex items-center justify-center gap-1.5 ${
                     summaryMode === 'doubles'
                       ? 'bg-blue-600 text-white shadow-md'
                       : 'bg-white/5 text-slate-400 hover:text-white'
@@ -205,7 +205,7 @@ export function SummaryCardModal({
                 <button
                   type="button"
                   onClick={() => setSummaryMode('singles')}
-                  className={`px-3 py-1.5 text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                  className={`flex-1 sm:flex-initial px-3 py-1.5 text-xs font-semibold transition-all flex items-center justify-center gap-1.5 ${
                     summaryMode === 'singles'
                       ? 'bg-emerald-600 text-white shadow-md'
                       : 'bg-white/5 text-slate-400 hover:text-white'
@@ -228,13 +228,13 @@ export function SummaryCardModal({
           )}
 
           {/* Format Toggle */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between sm:justify-start gap-2">
             <span className="text-xs font-semibold text-slate-400">Aspect:</span>
-            <div className="flex rounded-lg overflow-hidden border border-white/10">
+            <div className="flex flex-1 sm:flex-initial rounded-lg overflow-hidden border border-white/10">
               <button
                 type="button"
                 onClick={() => setCardFormat('square')}
-                className={`px-3 py-1.5 text-xs font-semibold transition-all ${
+                className={`flex-1 sm:flex-initial px-3 py-1.5 text-xs font-semibold text-center transition-all ${
                   cardFormat === 'square'
                     ? 'bg-emerald-500 text-white'
                     : 'bg-white/5 text-slate-400 hover:text-white'
@@ -245,7 +245,7 @@ export function SummaryCardModal({
               <button
                 type="button"
                 onClick={() => setCardFormat('portrait')}
-                className={`px-3 py-1.5 text-xs font-semibold transition-all ${
+                className={`flex-1 sm:flex-initial px-3 py-1.5 text-xs font-semibold text-center transition-all ${
                   cardFormat === 'portrait'
                     ? 'bg-emerald-500 text-white'
                     : 'bg-white/5 text-slate-400 hover:text-white'
@@ -258,9 +258,9 @@ export function SummaryCardModal({
         </div>
 
         {/* Preview Container */}
-        <div className="rounded-xl border border-white/10 overflow-hidden bg-black/60 p-2 flex items-center justify-center min-h-[300px]">
+        <div className="rounded-xl border border-white/10 overflow-hidden bg-black/60 p-2 flex items-center justify-center min-h-[260px] max-h-[52vh] sm:max-h-[60vh]">
           {generating ? (
-            <div className="flex items-center justify-center h-72">
+            <div className="flex items-center justify-center h-64">
               <Loader2 className="w-8 h-8 text-emerald-400 animate-spin" />
               <span className="ml-3 text-sm text-slate-300 font-medium">
                 Generating {summaryMode} summary card...
@@ -270,10 +270,10 @@ export function SummaryCardModal({
             <img
               src={previewUrl}
               alt={`${summaryMode} Summary Card Preview`}
-              className="w-full h-auto rounded-lg shadow-2xl"
+              className="max-h-[48vh] sm:max-h-[56vh] w-auto max-w-full h-auto object-contain rounded-lg shadow-2xl mx-auto"
             />
           ) : (
-            <div className="flex items-center justify-center h-72">
+            <div className="flex items-center justify-center h-64">
               <span className="text-slate-400 text-sm">Preparing preview...</span>
             </div>
           )}
@@ -287,11 +287,11 @@ export function SummaryCardModal({
           <SummaryCard ref={cardRef} data={currentData} format={cardFormat} />
         </div>
 
-        <DialogFooter className="flex-row gap-2 sm:justify-end mt-2">
+        <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:justify-end mt-3">
           <Button
             onClick={handleDownload}
             disabled={!previewUrl || downloading}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+            className="w-full sm:w-auto h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
           >
             {downloading ? (
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -304,7 +304,7 @@ export function SummaryCardModal({
             onClick={handleShare}
             disabled={!previewUrl || sharing}
             variant="outline"
-            className="border-white/10 text-white hover:bg-white/10 font-semibold"
+            className="w-full sm:w-auto h-11 border-white/10 text-white hover:bg-white/10 font-semibold"
           >
             {sharing ? (
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />

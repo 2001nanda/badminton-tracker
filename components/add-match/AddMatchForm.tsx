@@ -248,10 +248,10 @@ export function AddMatchForm() {
 
   return (
     <>
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 pb-32 md:pb-8">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 sm:space-y-5 pb-10">
         {/* Match Type */}
-        <div className="glass-card rounded-2xl p-6">
-          <h2 className="text-base font-semibold text-white mb-4">Match Type</h2>
+        <div className="glass-card rounded-2xl p-4 sm:p-6">
+          <h2 className="text-sm sm:text-base font-semibold text-white mb-3 sm:mb-4">Match Type</h2>
           <MatchTypeSelector
             value={formValues.type}
             onChange={(value) => {
@@ -265,8 +265,8 @@ export function AddMatchForm() {
         </div>
 
         {/* Players */}
-        <div className="glass-card rounded-2xl p-6">
-          <h2 className="text-base font-semibold text-white mb-5">Players</h2>
+        <div className="glass-card rounded-2xl p-4 sm:p-6">
+          <h2 className="text-sm sm:text-base font-semibold text-white mb-4 sm:mb-5">Players</h2>
 
           {formValues.type === 'singles' ? (
             <SinglesPlayerSelector
@@ -299,13 +299,13 @@ export function AddMatchForm() {
         </div>
 
         {/* Live Scoreboard Banner / Quick Launch */}
-        <div className="glass-card rounded-2xl p-5 border border-emerald-500/30 bg-gradient-to-r from-emerald-950/40 via-black to-emerald-950/20 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="glass-card rounded-2xl p-4 sm:p-5 border border-emerald-500/30 bg-gradient-to-r from-emerald-950/40 via-black to-emerald-950/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-white shadow-lg shadow-emerald-500/30">
-              <Zap className="w-6 h-6" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-white shadow-lg shadow-emerald-500/30 shrink-0">
+              <Zap className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <div>
-              <h3 className="text-base font-extrabold text-white flex items-center gap-2">
+              <h3 className="text-sm sm:text-base font-extrabold text-white flex items-center gap-1.5 flex-wrap">
                 Court-Side Live Scoreboard
                 <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-bold px-2 py-0.5 rounded-full border border-emerald-500/30">
                   SINGLE GAME
@@ -328,13 +328,15 @@ export function AddMatchForm() {
         </div>
 
         {/* Single Game Score Entry */}
-        <div className="glass-card rounded-2xl p-6">
-          <div className="flex items-center justify-between mb-5">
+        <div className="glass-card rounded-2xl p-4 sm:p-6">
+          <div className="flex items-center justify-between mb-4 sm:mb-5">
             <div>
-              <h2 className="text-base font-semibold text-white">Game Score</h2>
-              <p className="text-xs text-slate-400">1 Game Played = 1 Match Record</p>
+              <h2 className="text-sm sm:text-base font-semibold text-white">Game Score</h2>
+              <p className="text-[11px] sm:text-xs text-slate-400">1 Game Played = 1 Match Record</p>
             </div>
-            <span className="text-xs text-emerald-400 font-medium">Badminton 21 Pts</span>
+            <span className="text-xs text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
+              Badminton 21 Pts
+            </span>
           </div>
 
           <ScoreInput
@@ -364,27 +366,25 @@ export function AddMatchForm() {
         {/* Winner Preview */}
         <WinnerPreview winnerNames={winnerPreview.names} show={winnerPreview.show} />
 
-        {/* Submit Button */}
-        <div className="md:relative md:p-0 md:bg-none">
-          <div className="fixed bottom-16 left-0 right-0 p-4 bg-gradient-to-t from-[#0B0F14] via-[#0B0F14] to-transparent md:relative md:bottom-0 md:p-0 md:bg-none z-40">
-            <Button
-              type="submit"
-              disabled={submitting || !hasValidScore(formValues)}
-              className="w-full h-14 text-base font-semibold bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 shadow-lg shadow-emerald-500/30 transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-            >
-              {submitting ? (
-                <>
-                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                  Saving Match...
-                </>
-              ) : (
-                <>
-                  <Save className="w-5 h-5 mr-2" />
-                  Save Game 🏸
-                </>
-              )}
-            </Button>
-          </div>
+        {/* Submit Button (Permanently visible in-flow, never obscured or cramped) */}
+        <div className="pt-2">
+          <Button
+            type="submit"
+            disabled={submitting || !hasValidScore(formValues)}
+            className="w-full h-14 text-base font-bold bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 shadow-lg shadow-emerald-500/30 transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed rounded-2xl"
+          >
+            {submitting ? (
+              <>
+                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                Saving Match...
+              </>
+            ) : (
+              <>
+                <Save className="w-5 h-5 mr-2" />
+                Save Game 🏸
+              </>
+            )}
+          </Button>
         </div>
       </form>
 

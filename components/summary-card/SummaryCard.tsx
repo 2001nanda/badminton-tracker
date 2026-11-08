@@ -15,10 +15,23 @@ interface SummaryCardProps {
 export const SummaryCard = forwardRef<HTMLDivElement, SummaryCardProps>(
   function SummaryCard({ data, format = 'square' }, ref) {
     const isPortrait = format === 'portrait';
-    const cardWidth = 1080;
-    const cardHeight = isPortrait ? 1350 : 1080;
-
     const isDoubles = data.mode === 'doubles';
+    const allPlayersList = isDoubles ? data.individualPlayerStats : data.playerBreakdown;
+    const allDuosList = isDoubles ? data.duoBreakdown : [];
+
+    const playerCount = allPlayersList.length;
+    const duoCount = isDoubles ? allDuosList.length : playerCount;
+    const maxTableRows = Math.max(playerCount, duoCount);
+
+    // Dynamic height calculation:
+    // Base square is 1080px, base portrait is 1350px.
+    // If table rows exceed 4, allocate additional height (~38px per additional row) so all rows fit comfortably without clipping!
+    const extraRows = Math.max(0, maxTableRows - 4);
+    const extraHeight = extraRows * 38;
+
+    const baseHeight = isPortrait ? 1350 : 1080;
+    const cardWidth = 1080;
+    const cardHeight = baseHeight + extraHeight;
 
     return (
       <div
@@ -166,7 +179,7 @@ export const SummaryCard = forwardRef<HTMLDivElement, SummaryCardProps>(
 
               <div className="space-y-1.5">
                 {isDoubles
-                  ? data.duoBreakdown.slice(0, 4).map((duo) => (
+                  ? data.duoBreakdown.map((duo) => (
                       <div
                         key={duo.id}
                         className="grid grid-cols-[24px_1fr_36px_30px_30px_42px] items-center text-xs px-1 py-1 rounded-lg bg-white/[0.02]"
@@ -197,7 +210,7 @@ export const SummaryCard = forwardRef<HTMLDivElement, SummaryCardProps>(
                         <span className="text-white text-right font-bold">{duo.winPercentage}%</span>
                       </div>
                     ))
-                  : data.playerBreakdown.slice(0, 4).map((p) => (
+                  : data.playerBreakdown.map((p) => (
                       <div
                         key={p.id}
                         className="grid grid-cols-[24px_1fr_36px_30px_30px_42px] items-center text-xs px-1 py-1 rounded-lg bg-white/[0.02]"
@@ -227,7 +240,7 @@ export const SummaryCard = forwardRef<HTMLDivElement, SummaryCardProps>(
             </div>
           </div>
 
-          {/* Column 2: Individual Player Stats */}
+          {/* Column 2: Individual Player Stats (Dynamically renders EVERY participating player) */}
           <div className="bg-[#0D131F]/90 rounded-2xl p-3 border border-white/10 flex flex-col justify-between shadow-md">
             <div>
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200 mb-2">
@@ -242,28 +255,26 @@ export const SummaryCard = forwardRef<HTMLDivElement, SummaryCardProps>(
               </div>
 
               <div className="space-y-1.5">
-                {(isDoubles ? data.individualPlayerStats : data.playerBreakdown)
-                  .slice(0, 4)
-                  .map((p) => (
-                    <div
-                      key={p.id}
-                      className="grid grid-cols-[1fr_36px_30px_30px_42px] items-center text-xs px-1 py-1 rounded-lg bg-white/[0.02]"
-                    >
-                      <div className="flex items-center gap-1.5 min-w-0 pr-1">
-                        <span className="text-slate-400 text-xs flex-shrink-0">🏸</span>
-                        <span className="font-semibold text-white text-[11.5px] leading-tight">{p.name}</span>
-                      </div>
-                      <span className="text-slate-300 text-center font-medium">{p.played}</span>
-                      <span className="text-emerald-400 text-center font-bold">{p.wins}</span>
-                      <span className="text-red-400 text-center font-bold">{p.losses}</span>
-                      <span className="text-white text-right font-bold">{p.winPercentage}%</span>
+                {allPlayersList.map((p) => (
+                  <div
+                    key={p.id}
+                    className="grid grid-cols-[1fr_36px_30px_30px_42px] items-center text-xs px-1 py-1 rounded-lg bg-white/[0.02]"
+                  >
+                    <div className="flex items-center gap-1.5 min-w-0 pr-1">
+                      <span className="text-slate-400 text-xs flex-shrink-0">🏸</span>
+                      <span className="font-semibold text-white text-[11.5px] leading-tight">{p.name}</span>
                     </div>
-                  ))}
+                    <span className="text-slate-300 text-center font-medium">{p.played}</span>
+                    <span className="text-emerald-400 text-center font-bold">{p.wins}</span>
+                    <span className="text-red-400 text-center font-bold">{p.losses}</span>
+                    <span className="text-white text-right font-bold">{p.winPercentage}%</span>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
 
-          {/* Column 3: Win Rate Bar Chart */}
+          {/* Column 3: Win Rate Bar Chart (All participating players) */}
           <div className="bg-[#0D131F]/90 rounded-2xl p-3 border border-white/10 flex flex-col justify-between shadow-md">
             <div>
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200 mb-2.5">
@@ -271,15 +282,13 @@ export const SummaryCard = forwardRef<HTMLDivElement, SummaryCardProps>(
               </h3>
 
               <div className="space-y-2">
-                {(isDoubles ? data.individualPlayerStats : data.playerBreakdown)
-                  .slice(0, 4)
-                  .map((p, idx) => {
-                    const barColor =
-                      idx === 0 || idx === 1
-                        ? 'linear-gradient(90deg, #10B981, #34D399)'
-                        : idx === 2
-                        ? 'linear-gradient(90deg, #3B82F6, #60A5FA)'
-                        : 'linear-gradient(90deg, #8B5CF6, #A78BFA)';
+                {allPlayersList.map((p, idx) => {
+                  const barColor =
+                    idx === 0 || idx === 1
+                      ? 'linear-gradient(90deg, #10B981, #34D399)'
+                      : idx === 2
+                      ? 'linear-gradient(90deg, #3B82F6, #60A5FA)'
+                      : 'linear-gradient(90deg, #8B5CF6, #A78BFA)';
 
                     return (
                       <div key={p.id} className="space-y-0.5">

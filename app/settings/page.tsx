@@ -167,12 +167,12 @@ export default function SettingsPage() {
         </div>
 
         {/* Toggle Card */}
-        <div className="p-5 rounded-2xl bg-white/5 border border-white/10 space-y-5">
-          <div className="flex items-center justify-between gap-4">
+        <div className="p-4 sm:p-5 rounded-2xl bg-white/5 border border-white/10 space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
+              <h3 className="text-sm sm:text-base font-bold text-white flex items-center gap-2 flex-wrap">
                 Auto Delete Old Matches
-                <span className="text-[11px] font-semibold text-slate-400 bg-white/5 px-2.5 py-0.5 rounded-md border border-white/10">
+                <span className="text-[10px] sm:text-[11px] font-semibold text-slate-400 bg-white/5 px-2.5 py-0.5 rounded-md border border-white/10">
                   Retention: {settings.retentionDays || 14} Days
                 </span>
               </h3>
@@ -184,27 +184,29 @@ export default function SettingsPage() {
             </div>
 
             {/* Toggle Switch */}
-            <button
-              type="button"
-              onClick={handleToggleAutoDelete}
-              disabled={saving}
-              className={cn(
-                'w-16 h-9 rounded-full transition-colors relative flex items-center p-1 shrink-0',
-                settings.autoDeleteEnabled
-                  ? 'bg-emerald-500'
-                  : 'bg-slate-700 hover:bg-slate-600',
-                'disabled:opacity-50 disabled:cursor-not-allowed'
-              )}
-            >
-              <div
+            <div className="flex justify-end sm:justify-start">
+              <button
+                type="button"
+                onClick={handleToggleAutoDelete}
+                disabled={saving}
                 className={cn(
-                  'w-7 h-7 rounded-full bg-white shadow-md transform transition-transform duration-200 flex items-center justify-center text-[10px] font-black',
-                  settings.autoDeleteEnabled ? 'translate-x-7 text-emerald-600' : 'translate-x-0 text-slate-600'
+                  'w-16 h-9 rounded-full transition-colors relative flex items-center p-1 shrink-0',
+                  settings.autoDeleteEnabled
+                    ? 'bg-emerald-500'
+                    : 'bg-slate-700 hover:bg-slate-600',
+                  'disabled:opacity-50 disabled:cursor-not-allowed'
                 )}
               >
-                {settings.autoDeleteEnabled ? 'ON' : 'OFF'}
-              </div>
-            </button>
+                <div
+                  className={cn(
+                    'w-7 h-7 rounded-full bg-white shadow-md transform transition-transform duration-200 flex items-center justify-center text-[10px] font-black',
+                    settings.autoDeleteEnabled ? 'translate-x-7 text-emerald-600' : 'translate-x-0 text-slate-600'
+                  )}
+                >
+                  {settings.autoDeleteEnabled ? 'ON' : 'OFF'}
+                </div>
+              </button>
+            </div>
           </div>
 
           {/* Explanation Banner */}

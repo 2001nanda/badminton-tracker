@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { Player } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import {
@@ -42,6 +43,7 @@ export function FullscreenScoreboard({
   teamBPlayers,
   onSaveMatch,
 }: FullscreenScoreboardProps) {
+  const [mounted, setMounted] = useState<boolean>(false);
   const [scoreA, setScoreA] = useState<number>(0);
   const [scoreB, setScoreB] = useState<number>(0);
   const [historyStack, setHistoryStack] = useState<ScoreAction[]>([]);
@@ -57,7 +59,12 @@ export function FullscreenScoreboard({
 
   const wakeLockRef = useRef<any>(null);
 
-  // Team names
+  // Mount check for React Portal
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Team names formatted nicely
   const teamAName = useMemo(() => {
     return teamAPlayers.map((p) => p.name).join(' + ') || 'Team A';
   }, [teamAPlayers]);
@@ -75,15 +82,23 @@ export function FullscreenScoreboard({
     return null;
   };
 
-  // Screen Wake Lock API
+  // Screen Wake Lock API and Body Shell Hide Hook
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      if (typeof document !== 'undefined') {
+        document.body.classList.remove('scoreboard-active');
+      }
+      return;
+    }
+
+    if (typeof document !== 'undefined') {
+      document.body.classList.add('scoreboard-active');
+    }
 
     const requestWakeLock = async () => {
       try {
         if ('wakeLock' in navigator) {
           wakeLockRef.current = await (navigator as any).wakeLock.request('screen');
-          console.log('💡 Screen Wake Lock activated');
         }
       } catch (err: any) {
         console.warn('Wake Lock request failed:', err.message);
@@ -93,11 +108,13 @@ export function FullscreenScoreboard({
     requestWakeLock();
 
     return () => {
+      if (typeof document !== 'undefined') {
+        document.body.classList.remove('scoreboard-active');
+      }
       if (wakeLockRef.current) {
         wakeLockRef.current.release().then(() => {
           wakeLockRef.current = null;
-          console.log('💡 Screen Wake Lock released');
-        });
+        }).catch(() => {});
       }
     };
   }, [isOpen]);
@@ -204,7 +221,7 @@ export function FullscreenScoreboard({
     triggerHaptic(30);
   }, [historyStack]);
 
-  // Toggle Fullscreen
+  // Toggle Browser Fullscreen
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen().catch(() => {});
@@ -217,7 +234,7 @@ export function FullscreenScoreboard({
     }
   };
 
-  // Save Match Handler
+  // Save Match Handler (Directly accessible from scoreboard)
   const handleFinalSave = async () => {
     if (scoreA === 0 && scoreB === 0) {
       toast.error('No points scored yet');
@@ -243,9 +260,9 @@ export function FullscreenScoreboard({
     }
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
-  // Determine which side is displayed left vs right based on Swap Ends
+  // Determine court side layout based on Swap Ends
   const leftTeamKey = isSwappedEnds ? 'teamB' : 'teamA';
   const rightTeamKey = isSwappedEnds ? 'teamA' : 'teamB';
 
@@ -260,89 +277,93 @@ export function FullscreenScoreboard({
   const isGamePointA = (scoreA >= 20 && scoreA - scoreB >= 1) || scoreA === 29;
   const isGamePointB = (scoreB >= 20 && scoreB - scoreA >= 1) || scoreB === 29;
 
-  return (
-    <div className="fixed inset-0 z-50 bg-black flex flex-col select-none touch-manipulation overflow-hidden">
-      {/* Top Header Controls Bar */}
-      <div className="h-14 sm:h-16 px-4 bg-black/80 backdrop-blur-md border-b border-white/10 flex items-center justify-between shrink-0 z-20">
+  const content = (
+    <div
+      className="fixed inset-0 z-[99999] bg-[#07090E] h-screen h-[100dvh] max-h-[100dvh] w-screen overflow-hidden flex flex-col justify-between select-none touch-manipulation"
+      style={{
+        paddingTop: 'env(safe-area-inset-top, 0px)',
+      }}
+    >
+      {/* Sleek Minimal Top Control Bar (Takes minimal screen height) */}
+      <div className="h-11 sm:h-12 px-3 sm:px-4 bg-black/90 backdrop-blur-md border-b border-white/10 flex items-center justify-between shrink-0 z-20">
+        {/* Left: Minimal Exit Control */}
         <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
+          <button
+            type="button"
             onClick={onClose}
-            className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 text-white"
+            className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 active:scale-95 text-slate-300 hover:text-white flex items-center justify-center transition-all"
+            title="Exit Scoreboard"
           >
-            <X className="w-5 h-5" />
-          </Button>
+            <X className="w-4 h-4" />
+          </button>
 
-          <span className="text-xs uppercase tracking-wider font-extrabold px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-            {matchType === 'singles' ? 'Singles Game' : 'Doubles Game'}
+          <span className="text-[11px] uppercase tracking-wider font-extrabold px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+            {matchType === 'singles' ? 'Singles' : 'Doubles'}
           </span>
         </div>
 
-        {/* Center Live Game Status Indicator */}
-        <div className="flex items-center gap-2">
+        {/* Center: Live Game Status Indicator (Only active alerts, no crowded clutter) */}
+        <div className="flex items-center">
           {isDeuce ? (
-            <span className="flex items-center gap-1.5 text-xs font-black tracking-wider px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse">
-              <Flame className="w-3.5 h-3.5 text-amber-400" />
+            <span className="flex items-center gap-1 text-[11px] font-black tracking-wider px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse">
+              <Flame className="w-3 h-3 text-amber-400" />
               DEUCE
             </span>
           ) : isGamePointA || isGamePointB ? (
-            <span className="flex items-center gap-1.5 text-xs font-black tracking-wider px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 animate-pulse">
-              <Flame className="w-3.5 h-3.5 text-emerald-400" />
+            <span className="flex items-center gap-1 text-[11px] font-black tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 animate-pulse">
+              <Flame className="w-3 h-3 text-emerald-400" />
               GAME POINT
             </span>
           ) : (
-            <span className="text-xs font-bold text-slate-400 tracking-wider">
-              Target: 21 pts (max 30)
+            <span className="text-[11px] font-bold text-slate-400 tracking-wide">
+              First to 21 Pts
             </span>
           )}
         </div>
 
-        {/* Actions: Swap Ends, Fullscreen */}
-        <div className="flex items-center gap-1.5">
-          <Button
-            variant="ghost"
-            size="sm"
+        {/* Right: Swap Ends & Desktop Fullscreen */}
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
             onClick={() => setIsSwappedEnds((prev) => !prev)}
-            className="h-9 px-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white text-xs font-semibold"
-            title="Swap Court Sides"
+            className="h-8 px-2.5 rounded-lg bg-white/10 hover:bg-white/20 active:scale-95 text-slate-300 hover:text-white text-xs font-semibold flex items-center gap-1 transition-all"
+            title="Swap Ends"
           >
-            <ArrowLeftRight className="w-4 h-4 mr-1.5" />
-            Swap Ends
-          </Button>
+            <ArrowLeftRight className="w-3.5 h-3.5" />
+            <span className="hidden xs:inline sm:inline">Swap</span>
+          </button>
 
-          <Button
-            variant="ghost"
-            size="icon"
+          <button
+            type="button"
             onClick={toggleFullscreen}
-            className="w-9 h-9 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white hidden sm:flex"
+            className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white hidden sm:flex items-center justify-center transition-all"
             title="Toggle Browser Fullscreen"
           >
-            {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-          </Button>
+            {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+          </button>
         </div>
       </div>
 
-      {/* 50/50 Court-Side Split Scoring Touch Zones */}
-      <div className="flex-1 grid grid-cols-2 divide-x-2 divide-black/80 relative">
+      {/* 50/50 Red & Green Equal Scoring Areas */}
+      <div className="flex-1 min-h-0 grid grid-cols-2 divide-x-2 divide-black/90 relative">
         {/* LEFT COURT ZONE */}
         <div
           onClick={() => handleAddPoint(leftTeamKey)}
           className={cn(
-            'flex flex-col items-center justify-between p-4 sm:p-6 transition-all duration-75 cursor-pointer active:brightness-110 relative group overflow-hidden',
+            'flex flex-col items-center justify-between p-3 sm:p-6 transition-all duration-75 cursor-pointer active:brightness-110 relative group overflow-hidden',
             leftTeamKey === 'teamA'
-              ? 'bg-gradient-to-b from-rose-950/90 via-red-900 to-red-950 text-red-50'
-              : 'bg-gradient-to-b from-emerald-950/90 via-emerald-900 to-emerald-950 text-emerald-50'
+              ? 'bg-gradient-to-b from-[#4a0808] via-[#5e0a0a] to-[#2b0404] text-red-50'
+              : 'bg-gradient-to-b from-[#023126] via-[#064e3b] to-[#02231c] text-emerald-50'
           )}
         >
-          {/* Subtle Court Line Texture */}
-          <div className="absolute inset-0 border-4 border-white/5 pointer-events-none m-3 rounded-2xl" />
+          {/* Subtle Court Line Boundary */}
+          <div className="absolute inset-2 sm:inset-3 border-2 border-white/10 pointer-events-none rounded-2xl" />
 
           {/* Left Team Header */}
-          <div className="w-full text-center z-10 pt-2">
+          <div className="w-full text-center z-10 pt-1">
             <span
               className={cn(
-                'inline-block px-3 py-1 rounded-full text-xs font-black tracking-widest uppercase mb-1',
+                'inline-block px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-black tracking-widest uppercase mb-1',
                 leftTeamKey === 'teamA'
                   ? 'bg-red-500/30 text-red-200 border border-red-400/30'
                   : 'bg-emerald-500/30 text-emerald-200 border border-emerald-400/30'
@@ -350,31 +371,31 @@ export function FullscreenScoreboard({
             >
               {leftTeamKey === 'teamA' ? 'Team A' : 'Team B'}
             </span>
-            <h2 className="text-lg sm:text-2xl font-black text-white truncate px-2 max-w-full drop-shadow">
+            <h2 className="text-sm sm:text-xl md:text-2xl font-black text-white px-1 leading-snug line-clamp-2 break-words drop-shadow">
               {leftTeamName}
             </h2>
           </div>
 
-          {/* Giant Score Display */}
-          <div className="flex-1 flex flex-col items-center justify-center z-10">
-            <div className="text-8xl sm:text-9xl md:text-[14rem] font-black tracking-tighter leading-none text-white drop-shadow-2xl">
+          {/* Huge Score Display */}
+          <div className="flex-1 flex flex-col items-center justify-center z-10 my-1">
+            <div className="text-7xl sm:text-9xl md:text-[11rem] lg:text-[13rem] font-black tracking-tighter leading-none text-white drop-shadow-2xl">
               {leftScore}
             </div>
-            <div className="text-xs uppercase tracking-widest font-bold opacity-60 mt-1">
+            <div className="text-[10px] sm:text-xs uppercase tracking-widest font-bold opacity-60 mt-1">
               Tap to +1 Point
             </div>
           </div>
 
-          {/* Minus Button for Left Team */}
-          <div className="w-full flex justify-center z-10 pb-2">
+          {/* Left Team Minus Button */}
+          <div className="w-full flex justify-center z-10 pb-1">
             <button
               type="button"
               onClick={(e) => handleMinusPoint(leftTeamKey, e)}
               disabled={leftScore === 0}
-              className="px-4 py-2 rounded-xl bg-black/40 hover:bg-black/60 text-white/80 hover:text-white text-xs font-bold flex items-center gap-1.5 backdrop-blur-md border border-white/10 active:scale-95 disabled:opacity-20 disabled:cursor-not-allowed transition-all"
+              className="px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-black/50 hover:bg-black/70 text-white/90 hover:text-white text-xs font-bold flex items-center gap-1 backdrop-blur-md border border-white/15 active:scale-95 disabled:opacity-20 disabled:cursor-not-allowed transition-all"
             >
-              <Minus className="w-4 h-4" />
-              -1 Point
+              <Minus className="w-3.5 h-3.5" />
+              <span>-1 Point</span>
             </button>
           </div>
         </div>
@@ -383,20 +404,20 @@ export function FullscreenScoreboard({
         <div
           onClick={() => handleAddPoint(rightTeamKey)}
           className={cn(
-            'flex flex-col items-center justify-between p-4 sm:p-6 transition-all duration-75 cursor-pointer active:brightness-110 relative group overflow-hidden',
+            'flex flex-col items-center justify-between p-3 sm:p-6 transition-all duration-75 cursor-pointer active:brightness-110 relative group overflow-hidden',
             rightTeamKey === 'teamA'
-              ? 'bg-gradient-to-b from-rose-950/90 via-red-900 to-red-950 text-red-50'
-              : 'bg-gradient-to-b from-emerald-950/90 via-emerald-900 to-emerald-950 text-emerald-50'
+              ? 'bg-gradient-to-b from-[#4a0808] via-[#5e0a0a] to-[#2b0404] text-red-50'
+              : 'bg-gradient-to-b from-[#023126] via-[#064e3b] to-[#02231c] text-emerald-50'
           )}
         >
-          {/* Subtle Court Line Texture */}
-          <div className="absolute inset-0 border-4 border-white/5 pointer-events-none m-3 rounded-2xl" />
+          {/* Subtle Court Line Boundary */}
+          <div className="absolute inset-2 sm:inset-3 border-2 border-white/10 pointer-events-none rounded-2xl" />
 
           {/* Right Team Header */}
-          <div className="w-full text-center z-10 pt-2">
+          <div className="w-full text-center z-10 pt-1">
             <span
               className={cn(
-                'inline-block px-3 py-1 rounded-full text-xs font-black tracking-widest uppercase mb-1',
+                'inline-block px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-black tracking-widest uppercase mb-1',
                 rightTeamKey === 'teamA'
                   ? 'bg-red-500/30 text-red-200 border border-red-400/30'
                   : 'bg-emerald-500/30 text-emerald-200 border border-emerald-400/30'
@@ -404,74 +425,80 @@ export function FullscreenScoreboard({
             >
               {rightTeamKey === 'teamA' ? 'Team A' : 'Team B'}
             </span>
-            <h2 className="text-lg sm:text-2xl font-black text-white truncate px-2 max-w-full drop-shadow">
+            <h2 className="text-sm sm:text-xl md:text-2xl font-black text-white px-1 leading-snug line-clamp-2 break-words drop-shadow">
               {rightTeamName}
             </h2>
           </div>
 
-          {/* Giant Score Display */}
-          <div className="flex-1 flex flex-col items-center justify-center z-10">
-            <div className="text-8xl sm:text-9xl md:text-[14rem] font-black tracking-tighter leading-none text-white drop-shadow-2xl">
+          {/* Huge Score Display */}
+          <div className="flex-1 flex flex-col items-center justify-center z-10 my-1">
+            <div className="text-7xl sm:text-9xl md:text-[11rem] lg:text-[13rem] font-black tracking-tighter leading-none text-white drop-shadow-2xl">
               {rightScore}
             </div>
-            <div className="text-xs uppercase tracking-widest font-bold opacity-60 mt-1">
+            <div className="text-[10px] sm:text-xs uppercase tracking-widest font-bold opacity-60 mt-1">
               Tap to +1 Point
             </div>
           </div>
 
-          {/* Minus Button for Right Team */}
-          <div className="w-full flex justify-center z-10 pb-2">
+          {/* Right Team Minus Button */}
+          <div className="w-full flex justify-center z-10 pb-1">
             <button
               type="button"
               onClick={(e) => handleMinusPoint(rightTeamKey, e)}
               disabled={rightScore === 0}
-              className="px-4 py-2 rounded-xl bg-black/40 hover:bg-black/60 text-white/80 hover:text-white text-xs font-bold flex items-center gap-1.5 backdrop-blur-md border border-white/10 active:scale-95 disabled:opacity-20 disabled:cursor-not-allowed transition-all"
+              className="px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-black/50 hover:bg-black/70 text-white/90 hover:text-white text-xs font-bold flex items-center gap-1 backdrop-blur-md border border-white/15 active:scale-95 disabled:opacity-20 disabled:cursor-not-allowed transition-all"
             >
-              <Minus className="w-4 h-4" />
-              -1 Point
+              <Minus className="w-3.5 h-3.5" />
+              <span>-1 Point</span>
             </button>
           </div>
         </div>
       </div>
 
-      {/* Bottom Sticky Action Bar */}
-      <div className="h-16 sm:h-20 px-4 bg-black/90 backdrop-blur-md border-t border-white/10 flex items-center justify-between shrink-0 z-20">
+      {/* Permanently Visible Bottom Action Bar with Mandatory Save Match Button */}
+      <div
+        className="shrink-0 z-20 bg-black/95 backdrop-blur-xl border-t border-white/10 px-3 sm:px-6 pt-2 flex items-center justify-between gap-2"
+        style={{
+          paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom, 0px))',
+        }}
+      >
         {/* Undo Action */}
         <Button
           type="button"
           variant="outline"
+          size="sm"
           onClick={handleUndo}
           disabled={historyStack.length === 0}
-          className="h-11 px-4 rounded-xl border-white/20 bg-white/5 hover:bg-white/10 text-white font-bold flex items-center gap-2 disabled:opacity-30"
+          className="h-10 sm:h-11 px-3 sm:px-4 rounded-xl border-white/20 bg-white/5 hover:bg-white/15 text-white font-bold flex items-center gap-1.5 disabled:opacity-30 text-xs sm:text-sm"
         >
-          <RotateCcw className="w-4 h-4" />
+          <RotateCcw className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           <span>Undo</span>
         </Button>
 
-        {/* Total Score Summary Box */}
-        <div className="flex items-center gap-3 bg-white/5 px-4 py-2 rounded-xl border border-white/10">
-          <span className="text-xs font-semibold text-slate-400">Score:</span>
-          <span className="text-lg font-black text-white">
+        {/* Live Running Score Summary */}
+        <div className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-xl border border-white/10 text-xs sm:text-sm">
+          <span className="text-slate-400 font-semibold hidden xs:inline">Score:</span>
+          <span className="font-black text-white text-sm sm:text-base tracking-wide">
             {scoreA} - {scoreB}
           </span>
         </div>
 
-        {/* Save Match Button */}
+        {/* MANDATORY SAVE MATCH BUTTON: Permanently Visible, Uncluttered, Accessible */}
         <Button
           type="button"
           onClick={handleFinalSave}
           disabled={saving || (scoreA === 0 && scoreB === 0) || scoreA === scoreB}
-          className="h-11 px-6 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 text-white font-extrabold shadow-lg shadow-emerald-500/25 flex items-center gap-2 disabled:opacity-40"
+          className="h-10 sm:h-11 px-4 sm:px-6 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 text-white font-extrabold text-xs sm:text-sm shadow-lg shadow-emerald-500/25 flex items-center gap-1.5 disabled:opacity-40"
         >
           {saving ? (
             <>
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Saving...
+              <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" />
+              <span>Saving...</span>
             </>
           ) : (
             <>
-              <Save className="w-4 h-4" />
-              Save Match 🏸
+              <Save className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span>Save Match 🏸</span>
             </>
           )}
         </Button>
@@ -479,7 +506,7 @@ export function FullscreenScoreboard({
 
       {/* Game Completed Modal Dialog */}
       {gameDialog && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[100000] bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
           <div className="bg-[#111827] border border-emerald-500/40 rounded-3xl p-6 sm:p-8 max-w-md w-full text-center shadow-2xl shadow-emerald-500/20 animate-in fade-in zoom-in-95 duration-200">
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-yellow-400 to-amber-600 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-yellow-500/30">
               <Trophy className="w-8 h-8 text-black" />
@@ -531,4 +558,6 @@ export function FullscreenScoreboard({
       )}
     </div>
   );
+
+  return createPortal(content, document.body);
 }

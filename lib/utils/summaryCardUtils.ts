@@ -211,13 +211,15 @@ export function computeDoublesSummary(
     }
 
     // Track secondary individual player statistics
-    match.players.slice(0, 4).forEach((playerId) => {
+    // Deduplicate player IDs per match to ensure a player is never counted twice in the same match
+    const distinctMatchPlayers = Array.from(new Set(match.players.slice(0, 4)));
+    distinctMatchPlayers.forEach((playerId) => {
       if (!individualStatsMap.has(playerId)) {
         individualStatsMap.set(playerId, { wins: 0, losses: 0, played: 0 });
       }
       const pStat = individualStatsMap.get(playerId)!;
       pStat.played += 1;
-      if (match.winner.includes(playerId)) {
+      if (match.winner && match.winner.includes(playerId)) {
         pStat.wins += 1;
       } else {
         pStat.losses += 1;
@@ -370,14 +372,15 @@ export function computeSinglesSummary(
   const playerStats = new Map<string, { wins: number; losses: number; matches: number }>();
 
   singlesMatches.forEach((match) => {
-    match.players.forEach((playerId) => {
+    const distinctMatchPlayers = Array.from(new Set(match.players.slice(0, 2)));
+    distinctMatchPlayers.forEach((playerId) => {
       if (!playerStats.has(playerId)) {
         playerStats.set(playerId, { wins: 0, losses: 0, matches: 0 });
       }
       const stat = playerStats.get(playerId)!;
       stat.matches += 1;
 
-      if (match.winner.includes(playerId)) {
+      if (match.winner && match.winner.includes(playerId)) {
         stat.wins += 1;
       } else {
         stat.losses += 1;

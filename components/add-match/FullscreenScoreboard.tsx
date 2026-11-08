@@ -279,13 +279,15 @@ export function FullscreenScoreboard({
 
   const content = (
     <div
-      className="fixed inset-0 z-[99999] bg-[#07090E] h-screen h-[100dvh] max-h-[100dvh] w-screen overflow-hidden flex flex-col justify-between select-none touch-manipulation"
+      className="scoreboard-container fixed inset-0 z-[99999] bg-[#07090E] h-screen h-[100dvh] max-h-[100dvh] w-screen overflow-hidden flex flex-col justify-between select-none touch-manipulation"
       style={{
         paddingTop: 'env(safe-area-inset-top, 0px)',
+        paddingLeft: 'env(safe-area-inset-left, 0px)',
+        paddingRight: 'env(safe-area-inset-right, 0px)',
       }}
     >
       {/* Sleek Minimal Top Control Bar (Takes minimal screen height) */}
-      <div className="h-11 sm:h-12 px-3 sm:px-4 bg-black/90 backdrop-blur-md border-b border-white/10 flex items-center justify-between shrink-0 z-20">
+      <div className="scoreboard-header h-11 sm:h-12 px-3 sm:px-4 bg-black/90 backdrop-blur-md border-b border-white/10 flex items-center justify-between shrink-0 z-20">
         {/* Left: Minimal Exit Control */}
         <div className="flex items-center gap-2">
           <button
@@ -350,20 +352,20 @@ export function FullscreenScoreboard({
         <div
           onClick={() => handleAddPoint(leftTeamKey)}
           className={cn(
-            'flex flex-col items-center justify-between p-3 sm:p-6 transition-all duration-75 cursor-pointer active:brightness-110 relative group overflow-hidden',
+            'scoreboard-zone flex flex-col items-center justify-between p-3 sm:p-6 transition-all duration-75 cursor-pointer active:brightness-110 relative group overflow-hidden',
             leftTeamKey === 'teamA'
               ? 'bg-gradient-to-b from-[#4a0808] via-[#5e0a0a] to-[#2b0404] text-red-50'
               : 'bg-gradient-to-b from-[#023126] via-[#064e3b] to-[#02231c] text-emerald-50'
           )}
         >
           {/* Subtle Court Line Boundary */}
-          <div className="absolute inset-2 sm:inset-3 border-2 border-white/10 pointer-events-none rounded-2xl" />
+          <div className="scoreboard-zone-boundary absolute inset-2 sm:inset-3 border-2 border-white/10 pointer-events-none rounded-2xl" />
 
           {/* Left Team Header */}
-          <div className="w-full text-center z-10 pt-1">
+          <div className="scoreboard-team-header w-full text-center z-10 pt-1">
             <span
               className={cn(
-                'inline-block px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-black tracking-widest uppercase mb-1',
+                'scoreboard-team-pill inline-block px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-black tracking-widest uppercase mb-1',
                 leftTeamKey === 'teamA'
                   ? 'bg-red-500/30 text-red-200 border border-red-400/30'
                   : 'bg-emerald-500/30 text-emerald-200 border border-emerald-400/30'
@@ -371,28 +373,28 @@ export function FullscreenScoreboard({
             >
               {leftTeamKey === 'teamA' ? 'Team A' : 'Team B'}
             </span>
-            <h2 className="text-sm sm:text-xl md:text-2xl font-black text-white px-1 leading-snug line-clamp-2 break-words drop-shadow">
+            <h2 className="scoreboard-player-name text-sm sm:text-xl md:text-2xl font-black text-white px-1 leading-snug line-clamp-2 break-words drop-shadow">
               {leftTeamName}
             </h2>
           </div>
 
           {/* Huge Score Display */}
-          <div className="flex-1 flex flex-col items-center justify-center z-10 my-1">
-            <div className="text-7xl sm:text-9xl md:text-[11rem] lg:text-[13rem] font-black tracking-tighter leading-none text-white drop-shadow-2xl">
+          <div className="scoreboard-score-wrapper flex-1 flex flex-col items-center justify-center z-10 my-1 min-h-0">
+            <div className="scoreboard-score-text text-7xl sm:text-8xl md:portrait:text-[10rem] lg:portrait:text-[12rem] font-black tracking-tighter leading-none text-white drop-shadow-2xl">
               {leftScore}
             </div>
-            <div className="text-[10px] sm:text-xs uppercase tracking-widest font-bold opacity-60 mt-1">
+            <div className="scoreboard-tap-prompt text-[10px] sm:text-xs uppercase tracking-widest font-bold opacity-60 mt-1">
               Tap to +1 Point
             </div>
           </div>
 
           {/* Left Team Minus Button */}
-          <div className="w-full flex justify-center z-10 pb-1">
+          <div className="scoreboard-minus-wrapper w-full flex justify-center z-10 pb-1">
             <button
               type="button"
               onClick={(e) => handleMinusPoint(leftTeamKey, e)}
               disabled={leftScore === 0}
-              className="px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-black/50 hover:bg-black/70 text-white/90 hover:text-white text-xs font-bold flex items-center gap-1 backdrop-blur-md border border-white/15 active:scale-95 disabled:opacity-20 disabled:cursor-not-allowed transition-all"
+              className="scoreboard-minus-btn px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-black/50 hover:bg-black/70 text-white/90 hover:text-white text-xs font-bold flex items-center gap-1 backdrop-blur-md border border-white/15 active:scale-95 disabled:opacity-20 disabled:cursor-not-allowed transition-all"
             >
               <Minus className="w-3.5 h-3.5" />
               <span>-1 Point</span>
@@ -404,20 +406,20 @@ export function FullscreenScoreboard({
         <div
           onClick={() => handleAddPoint(rightTeamKey)}
           className={cn(
-            'flex flex-col items-center justify-between p-3 sm:p-6 transition-all duration-75 cursor-pointer active:brightness-110 relative group overflow-hidden',
+            'scoreboard-zone flex flex-col items-center justify-between p-3 sm:p-6 transition-all duration-75 cursor-pointer active:brightness-110 relative group overflow-hidden',
             rightTeamKey === 'teamA'
               ? 'bg-gradient-to-b from-[#4a0808] via-[#5e0a0a] to-[#2b0404] text-red-50'
               : 'bg-gradient-to-b from-[#023126] via-[#064e3b] to-[#02231c] text-emerald-50'
           )}
         >
           {/* Subtle Court Line Boundary */}
-          <div className="absolute inset-2 sm:inset-3 border-2 border-white/10 pointer-events-none rounded-2xl" />
+          <div className="scoreboard-zone-boundary absolute inset-2 sm:inset-3 border-2 border-white/10 pointer-events-none rounded-2xl" />
 
           {/* Right Team Header */}
-          <div className="w-full text-center z-10 pt-1">
+          <div className="scoreboard-team-header w-full text-center z-10 pt-1">
             <span
               className={cn(
-                'inline-block px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-black tracking-widest uppercase mb-1',
+                'scoreboard-team-pill inline-block px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-black tracking-widest uppercase mb-1',
                 rightTeamKey === 'teamA'
                   ? 'bg-red-500/30 text-red-200 border border-red-400/30'
                   : 'bg-emerald-500/30 text-emerald-200 border border-emerald-400/30'
@@ -425,28 +427,28 @@ export function FullscreenScoreboard({
             >
               {rightTeamKey === 'teamA' ? 'Team A' : 'Team B'}
             </span>
-            <h2 className="text-sm sm:text-xl md:text-2xl font-black text-white px-1 leading-snug line-clamp-2 break-words drop-shadow">
+            <h2 className="scoreboard-player-name text-sm sm:text-xl md:text-2xl font-black text-white px-1 leading-snug line-clamp-2 break-words drop-shadow">
               {rightTeamName}
             </h2>
           </div>
 
           {/* Huge Score Display */}
-          <div className="flex-1 flex flex-col items-center justify-center z-10 my-1">
-            <div className="text-7xl sm:text-9xl md:text-[11rem] lg:text-[13rem] font-black tracking-tighter leading-none text-white drop-shadow-2xl">
+          <div className="scoreboard-score-wrapper flex-1 flex flex-col items-center justify-center z-10 my-1 min-h-0">
+            <div className="scoreboard-score-text text-7xl sm:text-8xl md:portrait:text-[10rem] lg:portrait:text-[12rem] font-black tracking-tighter leading-none text-white drop-shadow-2xl">
               {rightScore}
             </div>
-            <div className="text-[10px] sm:text-xs uppercase tracking-widest font-bold opacity-60 mt-1">
+            <div className="scoreboard-tap-prompt text-[10px] sm:text-xs uppercase tracking-widest font-bold opacity-60 mt-1">
               Tap to +1 Point
             </div>
           </div>
 
           {/* Right Team Minus Button */}
-          <div className="w-full flex justify-center z-10 pb-1">
+          <div className="scoreboard-minus-wrapper w-full flex justify-center z-10 pb-1">
             <button
               type="button"
               onClick={(e) => handleMinusPoint(rightTeamKey, e)}
               disabled={rightScore === 0}
-              className="px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-black/50 hover:bg-black/70 text-white/90 hover:text-white text-xs font-bold flex items-center gap-1 backdrop-blur-md border border-white/15 active:scale-95 disabled:opacity-20 disabled:cursor-not-allowed transition-all"
+              className="scoreboard-minus-btn px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-black/50 hover:bg-black/70 text-white/90 hover:text-white text-xs font-bold flex items-center gap-1 backdrop-blur-md border border-white/15 active:scale-95 disabled:opacity-20 disabled:cursor-not-allowed transition-all"
             >
               <Minus className="w-3.5 h-3.5" />
               <span>-1 Point</span>
@@ -457,7 +459,7 @@ export function FullscreenScoreboard({
 
       {/* Permanently Visible Bottom Action Bar with Mandatory Save Match Button */}
       <div
-        className="shrink-0 z-20 bg-black/95 backdrop-blur-xl border-t border-white/10 px-3 sm:px-6 pt-2 flex items-center justify-between gap-2"
+        className="scoreboard-bottom-bar shrink-0 z-20 bg-black/95 backdrop-blur-xl border-t border-white/10 px-3 sm:px-6 pt-2 flex items-center justify-between gap-2"
         style={{
           paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom, 0px))',
         }}
@@ -469,14 +471,14 @@ export function FullscreenScoreboard({
           size="sm"
           onClick={handleUndo}
           disabled={historyStack.length === 0}
-          className="h-10 sm:h-11 px-3 sm:px-4 rounded-xl border-white/20 bg-white/5 hover:bg-white/15 text-white font-bold flex items-center gap-1.5 disabled:opacity-30 text-xs sm:text-sm"
+          className="scoreboard-bottom-btn h-10 sm:h-11 px-3 sm:px-4 rounded-xl border-white/20 bg-white/5 hover:bg-white/15 text-white font-bold flex items-center gap-1.5 disabled:opacity-30 text-xs sm:text-sm"
         >
           <RotateCcw className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           <span>Undo</span>
         </Button>
 
         {/* Live Running Score Summary */}
-        <div className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-xl border border-white/10 text-xs sm:text-sm">
+        <div className="scoreboard-score-summary flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-xl border border-white/10 text-xs sm:text-sm">
           <span className="text-slate-400 font-semibold hidden xs:inline">Score:</span>
           <span className="font-black text-white text-sm sm:text-base tracking-wide">
             {scoreA} - {scoreB}
@@ -488,7 +490,7 @@ export function FullscreenScoreboard({
           type="button"
           onClick={handleFinalSave}
           disabled={saving || (scoreA === 0 && scoreB === 0) || scoreA === scoreB}
-          className="h-10 sm:h-11 px-4 sm:px-6 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 text-white font-extrabold text-xs sm:text-sm shadow-lg shadow-emerald-500/25 flex items-center gap-1.5 disabled:opacity-40"
+          className="scoreboard-bottom-btn h-10 sm:h-11 px-4 sm:px-6 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 text-white font-extrabold text-xs sm:text-sm shadow-lg shadow-emerald-500/25 flex items-center gap-1.5 disabled:opacity-40"
         >
           {saving ? (
             <>

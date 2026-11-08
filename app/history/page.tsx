@@ -194,11 +194,11 @@ export default function HistoryPage() {
       <div className="container mx-auto px-4 py-6 max-w-5xl">
         {/* Selection Mode Controls */}
         {!selectionMode ? (
-          <div className="mb-4 flex justify-end gap-2">
+          <div className="mb-4 flex flex-wrap sm:flex-nowrap justify-end gap-2">
             <Button
               onClick={handleGenerateSummaryCard}
               variant="outline"
-              className="border-emerald-500/30 hover:bg-emerald-500/10 text-emerald-400 hover:text-emerald-300 rounded-xl"
+              className="w-full sm:w-auto border-emerald-500/30 hover:bg-emerald-500/10 text-emerald-400 hover:text-emerald-300 rounded-xl"
               disabled={loading}
             >
               <Image className="w-4 h-4 mr-2" />
@@ -207,7 +207,7 @@ export default function HistoryPage() {
             <Button
               onClick={handleEnableDeleteMode}
               variant="outline"
-              className="border-white/10 hover:bg-white/10 text-white rounded-xl"
+              className="w-full sm:w-auto border-white/10 hover:bg-white/10 text-white rounded-xl"
               disabled={matches.length === 0}
             >
               {isDeleteEnabled ? (

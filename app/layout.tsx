@@ -30,6 +30,7 @@ export default function RootLayout({
       <head>
         <link rel="icon" href="/favicon.ico" />
         <link rel="apple-touch-icon" href="/icon-192.png" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       </head>
@@ -38,7 +39,7 @@ export default function RootLayout({
           <DeleteProtectionProvider>
             <MobileTopBar />
             <DesktopNavigation />
-            <main className="min-h-screen pb-20 md:pb-8">
+            <main className="min-h-screen pb-[calc(5rem+env(safe-area-inset-bottom,0px))] md:pb-8">
               {children}
             </main>
             <MobileNavigation />

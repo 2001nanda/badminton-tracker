@@ -136,3 +136,21 @@ body {
   scrollbar-width: none;  /* Firefox */
 }
 
+/* Fullscreen Live Scoreboard Mode: Completely hide application layout elements */
+body.scoreboard-active {
+  overflow: hidden !important;
+  touch-action: none !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+
+body.scoreboard-active header,
+body.scoreboard-active nav,
+body.scoreboard-active footer,
+body.scoreboard-active .pwa-install-prompt {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+

@@ -153,4 +153,135 @@ body.scoreboard-active .pwa-install-prompt {
   pointer-events: none !important;
 }
 
+/* ========================================================================== */
+/* FULL-SCREEN SCOREBOARD: MOBILE LANDSCAPE & SHORT VIEWPORT OPTIMIZATIONS   */
+/* Target: Phones in landscape orientation (height <= 520px) or short screens */
+/* ========================================================================== */
+@media (orientation: landscape) and (max-height: 520px), (max-height: 480px) {
+  .scoreboard-container {
+    padding-top: env(safe-area-inset-top, 0px) !important;
+    padding-bottom: 0 !important;
+    padding-left: env(safe-area-inset-left, 0px) !important;
+    padding-right: env(safe-area-inset-right, 0px) !important;
+  }
+
+  .scoreboard-header {
+    height: 2.25rem !important; /* 36px */
+    padding-top: 0.25rem !important;
+    padding-bottom: 0.25rem !important;
+    padding-left: max(0.75rem, env(safe-area-inset-left, 0px)) !important;
+    padding-right: max(0.75rem, env(safe-area-inset-right, 0px)) !important;
+  }
+
+  .scoreboard-header button {
+    height: 1.75rem !important; /* 28px */
+    min-width: 1.75rem !important;
+    padding-left: 0.4rem !important;
+    padding-right: 0.4rem !important;
+  }
+
+  .scoreboard-zone {
+    padding: 0.25rem 0.5rem !important;
+    overflow: visible !important; /* Crucial: Prevent clipping numbers */
+  }
+
+  .scoreboard-zone-boundary {
+    inset: 0.25rem !important;
+    border-width: 1.5px !important;
+    border-radius: 0.75rem !important;
+  }
+
+  .scoreboard-team-header {
+    padding-top: 0.15rem !important;
+  }
+
+  .scoreboard-team-pill {
+    font-size: 8.5px !important;
+    line-height: 1 !important;
+    padding: 0.1rem 0.4rem !important;
+    margin-bottom: 0.1rem !important;
+    letter-spacing: 0.08em !important;
+  }
+
+  .scoreboard-player-name {
+    font-size: 0.8125rem !important; /* 13px */
+    line-height: 1.15 !important;
+    max-width: 95% !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .scoreboard-score-wrapper {
+    margin: 0 !important;
+    padding: 0 !important;
+    flex: 1 1 auto !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    align-items: center !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+
+  /* Score typography: dynamically sized with clamp to fit 320px–430px landscape heights */
+  .scoreboard-score-text {
+    font-size: clamp(2.75rem, 30vh, 5.25rem) !important; /* ~44px to 84px */
+    line-height: 1 !important;
+    letter-spacing: -0.04em !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    overflow: visible !important;
+  }
+
+  .scoreboard-tap-prompt {
+    font-size: 8px !important;
+    letter-spacing: 0.12em !important;
+    margin-top: 0.1rem !important;
+    opacity: 0.5 !important;
+  }
+
+  .scoreboard-minus-wrapper {
+    padding-bottom: 0.2rem !important;
+  }
+
+  .scoreboard-minus-btn {
+    height: 1.625rem !important; /* 26px */
+    padding: 0.1rem 0.6rem !important;
+    font-size: 10px !important;
+    border-radius: 0.5rem !important;
+  }
+
+  .scoreboard-minus-btn svg {
+    width: 0.75rem !important;
+    height: 0.75rem !important;
+  }
+
+  .scoreboard-bottom-bar {
+    height: 2.75rem !important; /* 44px */
+    padding-top: 0.25rem !important;
+    padding-bottom: max(0.25rem, env(safe-area-inset-bottom, 0px)) !important;
+    padding-left: max(0.75rem, env(safe-area-inset-left, 0px)) !important;
+    padding-right: max(0.75rem, env(safe-area-inset-right, 0px)) !important;
+  }
+
+  .scoreboard-bottom-btn {
+    height: 2rem !important; /* 32px */
+    font-size: 0.75rem !important; /* 12px */
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+    border-radius: 0.625rem !important;
+  }
+
+  .scoreboard-score-summary {
+    padding: 0.2rem 0.5rem !important;
+    font-size: 0.75rem !important;
+    border-radius: 0.5rem !important;
+  }
+}
+
+
 
